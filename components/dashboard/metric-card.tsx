@@ -14,6 +14,7 @@ interface MetricCardProps {
     value: number
     isPositive: boolean
   }
+  change?: number
   className?: string
 }
 
@@ -23,6 +24,7 @@ export function MetricCard({
   description,
   icon: Icon,
   trend,
+  change,
   className,
 }: MetricCardProps) {
   return (
@@ -39,21 +41,23 @@ export function MetricCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        {(description || trend) && (
+        {(description || trend || typeof change === "number") && (
           <div className="mt-1 flex items-center gap-2 text-xs">
-            {trend && (
+            {(trend || typeof change === "number") && (
               <span
                 className={cn(
                   "flex items-center gap-0.5 font-medium",
-                  trend.isPositive ? "text-emerald-500" : "text-red-500"
+                  (trend ? trend.isPositive : change! >= 0)
+                    ? "text-emerald-500"
+                    : "text-red-500"
                 )}
               >
-                {trend.isPositive ? (
+                {(trend ? trend.isPositive : change! >= 0) ? (
                   <TrendingUp className="h-3 w-3" />
                 ) : (
                   <TrendingDown className="h-3 w-3" />
                 )}
-                {trend.value}%
+                {trend ? `${trend.value}%` : `${change}%`}
               </span>
             )}
             {description && (

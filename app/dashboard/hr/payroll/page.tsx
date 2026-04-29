@@ -99,7 +99,7 @@ export default function PayrollPage() {
                     outerRadius={100}
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ category }) => category}
+                    label={({ name }: any) => name}
                   >
                     {payrollBreakdown.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />

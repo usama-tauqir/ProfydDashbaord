@@ -46,28 +46,33 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isClient || isLoading) return
 
-    if (!user && !supabaseUser) {
-      router.replace("/sign-in")
-      return
-    }
+    // Add a small delay to allow auth state to settle
+    const timeoutId = setTimeout(() => {
+      if (!user && !supabaseUser) {
+        router.replace("/sign-in")
+        return
+      }
 
-    const segments = pathname.split("/").filter(Boolean)
-    const isDashboardRoot = pathname === "/dashboard"
-    const requestedDepartment = segments[1] || ""
+      const segments = pathname.split("/").filter(Boolean)
+      const isDashboardRoot = pathname === "/dashboard"
+      const requestedDepartment = segments[1] || ""
 
-    if (isDashboardRoot) {
-      router.replace(`/dashboard/${userDepartment}`)
-      return
-    }
+      if (isDashboardRoot) {
+        router.replace(`/dashboard/${userDepartment}`)
+        return
+      }
 
-    if (
-      requestedDepartment &&
-      ALLOWED_DEPARTMENTS.includes(requestedDepartment as (typeof ALLOWED_DEPARTMENTS)[number]) &&
-      requestedDepartment !== userDepartment
-    ) {
-      router.replace(`/dashboard/${userDepartment}`)
-      return
-    }
+      if (
+        requestedDepartment &&
+        ALLOWED_DEPARTMENTS.includes(requestedDepartment as (typeof ALLOWED_DEPARTMENTS)[number]) &&
+        requestedDepartment !== userDepartment
+      ) {
+        router.replace(`/dashboard/${userDepartment}`)
+        return
+      }
+    }, 100) // Small delay to allow auth state to propagate
+
+    return () => clearTimeout(timeoutId)
   }, [isClient, isLoading, pathname, router, user, supabaseUser, userDepartment])
 
   if (!isClient || isLoading) {

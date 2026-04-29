@@ -134,7 +134,7 @@ export function DashboardSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton onClick={signOut}>
               <LogOut className="h-4 w-4" />
-              <span>Sign Out</span>
+              <span>Sign Ou</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

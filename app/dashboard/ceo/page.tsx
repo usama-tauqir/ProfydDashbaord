@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import { PageHeader } from "@/components/dashboard/page-header" 
-import { MetricCard } from "@/components/dashboard/metric-card"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { MetricCard } from "@/components/dashboard/metric-card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   Users,
   TrendingUp,
@@ -13,7 +12,8 @@ import {
   Target,
   Clock,
   AlertTriangle,
-} from "@/components/icons"
+} from "@/components/icons";
+import { Percent, CreditCard, BarChart3 } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -26,7 +26,7 @@ import {
   PieChart,
   Pie,
   Cell,
-} from "recharts"
+} from "recharts";
 
 // Mock data for CEO dashboard
 const revenueData = [
@@ -36,7 +36,7 @@ const revenueData = [
   { month: "Apr", revenue: 52000, target: 48000 },
   { month: "May", revenue: 49000, target: 50000 },
   { month: "Jun", revenue: 55000, target: 52000 },
-]
+];
 
 const departmentPerformance = [
   { name: "Support", value: 92, fill: "var(--support)" },
@@ -44,7 +44,7 @@ const departmentPerformance = [
   { name: "Finance", value: 95, fill: "var(--finance)" },
   { name: "Marketing", value: 78, fill: "var(--marketing)" },
   { name: "HR", value: 85, fill: "var(--hr)" },
-]
+];
 
 const studentGrowth = [
   { month: "Jan", active: 1200, new: 150, churned: 45 },
@@ -53,7 +53,7 @@ const studentGrowth = [
   { month: "Apr", active: 1580, new: 210, churned: 55 },
   { month: "May", active: 1735, new: 225, churned: 60 },
   { month: "Jun", active: 1900, new: 240, churned: 58 },
-]
+];
 
 const chartConfig = {
   revenue: { label: "Revenue", color: "var(--chart-1)" },
@@ -61,12 +61,25 @@ const chartConfig = {
   active: { label: "Active Students", color: "var(--chart-1)" },
   new: { label: "New Students", color: "var(--chart-2)" },
   churned: { label: "Churned", color: "var(--chart-5)" },
-}
+};
 
 export default function CEODashboardPage() {
+  // Derived values
+  const currentMonthActive = 1900;
+  const previousMonthActive = 1735;
+  const monthlyRevenue = 55000;
+  const cashCollected = 48500;
+  const churnPercent = 3.1;
+  const netGrowth = 182;
+  const arpu = (monthlyRevenue / currentMonthActive).toFixed(2); // ~28.95
+  const grossMarginPercent = 68; // mocked
+  const outstandingReceivables = 12500;
+  const cac = 125;
+  const paybackMonths = 4.2;
+  const tutorUtilization = 87;
+
   return (
     <div className="flex flex-col">
-      
       <main className="flex-1 p-6">
         <div className="mb-8">
           <h1 className="text-2xl font-bold">Executive Overview</h1>
@@ -74,72 +87,91 @@ export default function CEODashboardPage() {
             Key business metrics and performance indicators
           </p>
         </div>
-        
-        {/* Top KPIs */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+        {/* Row 1 – Main KPIs (5 cards) */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <MetricCard
-            title="Active Students"
-            value="1,900"
+            title="Active Students (M/N)"
+            value={`${currentMonthActive} / ${previousMonthActive}`}
             icon={Users}
-            trend={{ value: 12.5, isPositive: true }}
-            description="vs last month"
+            trend={{ value: ((currentMonthActive / previousMonthActive - 1) * 100), isPositive: true }}
+            description="current vs last month"
           />
           <MetricCard
-            title="Net Growth"
-            value="+182"
+            title="Net Student Growth"
+            value={`+${netGrowth}`}
             icon={TrendingUp}
             trend={{ value: 8.2, isPositive: true }}
             description="new - churned"
           />
           <MetricCard
             title="Monthly Revenue"
-            value="$55,000"
+            value={`$${monthlyRevenue.toLocaleString()}`}
             icon={DollarSign}
             trend={{ value: 15.3, isPositive: true }}
             description="vs last month"
           />
           <MetricCard
             title="Cash Collected"
-            value="$48,500"
+            value={`$${cashCollected.toLocaleString()}`}
             icon={Wallet}
             trend={{ value: 5.8, isPositive: true }}
-            description="88% collection rate"
+            description={`${((cashCollected / monthlyRevenue) * 100).toFixed(0)}% collection rate`}
+          />
+          <MetricCard
+            title="Outstanding Receivables"
+            value={`$${outstandingReceivables.toLocaleString()}`}
+            icon={CreditCard}
+            description="30+ days: $4,200"
           />
         </div>
-        
-        {/* Second Row KPIs */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+        {/* Row 2 – Additional Metrics (6 cards for the rest) */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <MetricCard
-            title="Churn Rate"
-            value="3.1%"
+            title="Churn %"
+            value={`${churnPercent}%`}
             icon={AlertTriangle}
             trend={{ value: 0.5, isPositive: true }}
             description="improved from 3.6%"
           />
           <MetricCard
+            title="ARPA"
+            value={`$${arpu}`}
+            icon={BarChart3}
+            description="avg revenue per active account"
+          />
+          <MetricCard
+            title="Gross Margin %"
+            value={`${grossMarginPercent}%`}
+            icon={Percent}
+            trend={{ value: 2.1, isPositive: true }}
+            description="vs industry avg 65%"
+          />
+          <MetricCard
             title="Tutor Utilization"
-            value="87%"
+            value={`${tutorUtilization}%`}
             icon={UserCheck}
             trend={{ value: 4.2, isPositive: true }}
             description="85 active tutors"
           />
           <MetricCard
             title="CAC"
-            value="$125"
+            value={`$${cac}`}
             icon={Target}
             trend={{ value: 8.0, isPositive: true }}
             description="down from $136"
           />
           <MetricCard
             title="Payback Period"
-            value="4.2 mo"
+            value={`${paybackMonths} mo`}
             icon={Clock}
             trend={{ value: 12.5, isPositive: true }}
             description="improved efficiency"
           />
         </div>
-        
-        {/* Charts Row 1 */}
+
+        {/* Charts Row 1 – Revenue and Student Growth */}
         <div className="mb-8 grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
@@ -172,7 +204,7 @@ export default function CEODashboardPage() {
               </ChartContainer>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Student Growth Trends</CardTitle>
@@ -192,8 +224,8 @@ export default function CEODashboardPage() {
             </CardContent>
           </Card>
         </div>
-        
-        {/* Charts Row 2 */}
+
+        {/* Charts Row 2 – Department Performance & Top 3 Risks */}
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-1">
             <CardHeader>
@@ -233,10 +265,10 @@ export default function CEODashboardPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Top Risks & Concerns</CardTitle>
+              <CardTitle>Top 3 Risks & Concerns</CardTitle>
               <CardDescription>Items requiring executive attention</CardDescription>
             </CardHeader>
             <CardContent>
@@ -274,5 +306,5 @@ export default function CEODashboardPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

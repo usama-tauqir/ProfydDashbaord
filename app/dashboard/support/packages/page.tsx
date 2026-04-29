@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function PackagesPage() {
-  const [packages, setPackages] = useState([]);
+  const [packages, setPackages] = useState<{ name: string; students: number; revenue: number; percentage: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

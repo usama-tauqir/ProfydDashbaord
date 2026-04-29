@@ -1,25 +1,22 @@
-use client";
+"use client";
 
-import { useState, useEffect } from "react";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 
-interface RevenueItem {
-  month: string;
-  collected: number;
-  arpu: number;
+interface Student {
+  id: string
+  name: string
+  email: string
+  package: string
+  tutor: string
 }
 
-export default function RevenuePage() {
-  const [revenue, setRevenue] = useState<RevenueItem[]>([]);
+const students: Student[] = [
+  { id: "1", name: "Ali Khan", email: "ali.khan@example.com", package: "Advanced Math", tutor: "Sara Ahmed" },
+  { id: "2", name: "Ayesha Malik", email: "ayesha.malik@example.com", package: "English Fluency", tutor: "Fahad Ali" },
+  { id: "3", name: "Hassan Raza", email: "hassan.raza@example.com", package: "Science Basics", tutor: "Nida Tariq" },
+]
 
-  useEffect(() => {
-    // Fetch data or compute monthly revenue
-    const monthlyData: RevenueItem[] = [
-      { month: "Jan", collected: 1500, arpu: 45 },
-      { month: "Feb", collected: 1700, arpu: 48 },
-      { month: "Mar", collected: 1900, arpu: 52 },
-    ];
-    setRevenue(monthlyData);
-  }, []);
+export default function ActiveStudentsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Active Students</h1>

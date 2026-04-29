@@ -49,8 +49,10 @@ export default function SignInPage() {
 
   try {
     await signIn(email.trim(), password)
-    // ✅ Redirect to generic dashboard – middleware will forward to /dashboard/:department
-    router.push("/dashboard")
+    // Add a small delay to allow auth state to propagate before redirecting
+    setTimeout(() => {
+      router.push("/dashboard")
+    }, 100)
   } catch (error: any) {
     console.error("Sign in error:", error)
     if (error.message.includes("Invalid login credentials")) {

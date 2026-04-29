@@ -12,7 +12,7 @@ export default function RevenuePage() {
     performance: 0,
     previousCollected: 0
   });
-  const [monthlyData, setMonthlyData] = useState([]);
+  const [monthlyData, setMonthlyData] = useState<{ month: string; collected: number; arpu: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

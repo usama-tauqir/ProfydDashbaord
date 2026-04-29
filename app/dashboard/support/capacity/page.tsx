@@ -13,7 +13,7 @@ export default function CapacityPage() {
     taughtHours: 0,
     utilization: 0
   });
-  const [weeklyData, setWeeklyData] = useState([]);
+  const [weeklyData, setWeeklyData] = useState<{ day: string; taught: number; available: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

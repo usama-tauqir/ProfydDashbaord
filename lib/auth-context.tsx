@@ -171,22 +171,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('🔄 Auth state changed:', event, session?.user?.email);
         console.log('🔄 Session expires:', session?.expires_at ? new Date(session.expires_at * 1000).toLocaleString() : 'N/A');
         
-        setSupabaseUser(session?.user ?? null);
-        
-        if (session?.user) {
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            // Ensure user exists in database
-            await ensureUserInDatabase(session.user);
-            
-            // Then fetch user data
-            const userData = await fetchUserData(session.user.id);
-            setUser(userData);
-          }
+        // Only update state if it's not already set (to avoid conflicts with manual signIn/signOut)
+        if (event === 'SIGNED_IN' && session?.user && !supabaseUser) {
+          setSupabaseUser(session.user);
+          await ensureUserInDatabase(session.user);
+          const userData = await fetchUserData(session.user.id);
+          setUser(userData);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          setSupabaseUser(null);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // Update user data on token refresh
+          const userData = await fetchUserData(session.user.id);
+          setUser(userData);
         }
         
-        router.refresh();
+        // Only refresh router for certain events, not for every state change
+        if (event === 'SIGNED_OUT') {
+          router.refresh();
+        }
       }
     );
 
@@ -208,13 +211,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('✅ Sign in successful, session expires:', 
         data.session?.expires_at ? new Date(data.session.expires_at * 1000).toLocaleString() : 'N/A');
       
+      // Immediately update state with the session data
+      setSupabaseUser(data.user);
+      if (data.user) {
+        await ensureUserInDatabase(data.user);
+        const userData = await fetchUserData(data.user.id);
+        setUser(userData);
+      }
+      
     } catch (error) {
       console.error('❌ Sign in error:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [ensureUserInDatabase, fetchUserData]);
 
   const signUp = useCallback(async (userData: SignUpData) => {
   setIsLoading(true)
@@ -256,8 +267,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🚪 Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Immediately clear the user state
+      setUser(null);
+      setSupabaseUser(null);
+      
       router.push("/sign-in");
-      router.refresh();
+      // Remove router.refresh() as it might cause issues
     } catch (error) {
       console.error("❌ Sign out error:", error);
     }

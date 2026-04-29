@@ -58,9 +58,10 @@ export interface TimeSeriesData {
 
 // Form field types
 export interface FormField {
-  id: string
+  id?: string
+  name?: string
   label: string
-  type: "text" | "number" | "select" | "date" | "textarea" | "percentage"
+  type: "text" | "number" | "select" | "date" | "textarea" | "percentage" | "email"
   placeholder?: string
   required?: boolean
   options?: { label: string; value: string }[]

@@ -1,129 +1,359 @@
-"use client"
+// app/dashboard/finance/page.tsx
+"use client";
 
-// import { DashboardHeader } from "@/components/dashboard/header"
-import { MetricCard } from "@/components/dashboard/metric-card"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { DollarSign, CreditCard, AlertTriangle, RefreshCw } from "@/components/icons"
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts"
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DollarSign,
+  CreditCard,
+  AlertCircle,
+  Receipt,
+  RotateCcw,
+  Ban,
+  Calendar,
+  Clock,
+  TrendingUp,
+  RefreshCw,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 
-const cashFlowData = [
-  { month: "Jan", collected: 42000, outstanding: 8000 },
-  { month: "Feb", collected: 45000, outstanding: 7500 },
-  { month: "Mar", collected: 48000, outstanding: 9000 },
-  { month: "Apr", collected: 52000, outstanding: 6500 },
-  { month: "May", collected: 49000, outstanding: 8500 },
-  { month: "Jun", collected: 55000, outstanding: 7000 },
-]
+// ----------------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------------
+type Period = "all" | "today" | "weekly" | "monthly" | "yearly";
 
-const refundData = [
-  { type: "Refunds", value: 2500, fill: "var(--chart-5)" },
-  { type: "Chargebacks", value: 800, fill: "var(--destructive)" },
-  { type: "Voids", value: 400, fill: "var(--chart-4)" },
-]
-
-const chartConfig = {
-  collected: { label: "Collected", color: "var(--chart-2)" },
-  outstanding: { label: "Outstanding", color: "var(--chart-5)" },
+interface FinanceStats {
+  invoicedAmount: number;
+  cashCollected: number;
+  outstandingReceivables: number;
+  voidsCount: number;
+  voidsValue: number;
+  refundsCount: number;
+  refundsValue: number;
+  chargebacksCount: number;
+  chargebacksValue: number;
 }
 
+interface AgingBucket {
+  bucket: string; // "0-30 days", "31-60 days", etc.
+  amount: number;
+}
+
+// ----------------------------------------------------------------------
+// Mock data generator (scales with period)
+// ----------------------------------------------------------------------
+const getMockData = (period: Period) => {
+  const factor =
+    period === "all"
+      ? 1
+      : period === "yearly"
+      ? 1
+      : period === "monthly"
+      ? 1 / 12
+      : period === "weekly"
+      ? 1 / 52
+      : 1 / 365;
+
+  const scale = (val: number) => Math.round(val * factor);
+
+  const stats: FinanceStats = {
+    invoicedAmount: scale(185000),
+    cashCollected: scale(148500),
+    outstandingReceivables: scale(36500),
+    voidsCount: scale(12),
+    voidsValue: scale(2400),
+    refundsCount: scale(5),
+    refundsValue: scale(1200),
+    chargebacksCount: scale(2),
+    chargebacksValue: scale(600),
+  };
+
+  // Aging breakdown (assume proportional to outstanding)
+  const totalOutstanding = stats.outstandingReceivables;
+  const aging: AgingBucket[] = [
+    { bucket: "0-30 days", amount: Math.round(totalOutstanding * 0.6) },
+    { bucket: "31-60 days", amount: Math.round(totalOutstanding * 0.25) },
+    { bucket: "61-90 days", amount: Math.round(totalOutstanding * 0.1) },
+    { bucket: "91+ days", amount: Math.round(totalOutstanding * 0.05) },
+  ];
+
+  return { stats, aging };
+};
+
+const AGING_COLORS = ["#4f46e5", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+// ----------------------------------------------------------------------
+// Main Component
+// ----------------------------------------------------------------------
 export default function FinanceDashboardPage() {
+  const [period, setPeriod] = useState<Period>("monthly"); // default to monthly
+  const [data, setData] = useState(() => getMockData("monthly"));
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = (selectedPeriod: Period) => {
+    setLoading(true);
+    setData(getMockData(selectedPeriod));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData(period);
+  }, [period]);
+
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  const { stats, aging } = data;
+
   return (
-    <div className="flex flex-col">
-      {/* <DashboardHeader
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Finance" },
-        ]}
-      /> */}
-      
-      <main className="flex-1 p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">Finance Dashboard</h1>
-          <p className="mt-1 text-muted-foreground">
-            Cash flow, billing, and financial tracking
+    <div className="space-y-8 p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Finance Dashboard</h1>
+          <p className="text-muted-foreground">
+            Cash & Billing metrics – invoiced, collected, outstanding, voids, refunds, chargebacks.
           </p>
         </div>
-        
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Cash Collected"
-            value="$55,000"
-            icon={DollarSign}
-            trend={{ value: 12.2, isPositive: true }}
-          />
-          <MetricCard
-            title="Outstanding"
-            value="$7,000"
-            icon={CreditCard}
-            trend={{ value: 17.6, isPositive: true }}
-            description="down from $8.5k"
-          />
-          <MetricCard
-            title="Refunds"
-            value="$2,500"
-            icon={RefreshCw}
-            trend={{ value: 8.0, isPositive: true }}
-            description="4.5% of revenue"
-          />
-          <MetricCard
-            title="Chargebacks"
-            value="$800"
-            icon={AlertTriangle}
-            trend={{ value: 20.0, isPositive: true }}
-            description="1.5% rate"
-          />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Frequency: Monthly</span>
+          </div>
+          <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="weekly">This Week</SelectItem>
+              <SelectItem value="monthly">This Month</SelectItem>
+              <SelectItem value="yearly">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => fetchData(period)} variant="outline" size="sm">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
         </div>
-        
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cash Flow</CardTitle>
-              <CardDescription>Collected vs outstanding over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
-                <AreaChart data={cashFlowData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={12} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `$${v / 1000}k`} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="collected" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.3} />
-                  <Area type="monotone" dataKey="outstanding" stroke="var(--chart-5)" fill="var(--chart-5)" fillOpacity={0.3} />
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Refunds & Chargebacks</CardTitle>
-              <CardDescription>Breakdown of returns and disputes</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center gap-8">
-              <ChartContainer config={chartConfig} className="h-[200px] w-[200px]">
-                <PieChart>
-                  <Pie data={refundData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                    {refundData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ChartContainer>
-              <div className="flex flex-col gap-3">
-                {refundData.map((item) => (
-                  <div key={item.type} className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                    <span className="text-sm text-muted-foreground">{item.type}</span>
-                    <span className="ml-auto font-medium">${item.value.toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+      </div>
+
+      {/* Key Invoicing & Collection Cards */}
+      <SectionTitle icon={DollarSign} title="Cash & Billing" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <MetricCard
+          title="Invoiced Amount"
+          value={`$${stats.invoicedAmount.toLocaleString()}`}
+          icon={Receipt}
+          highlight
+        />
+        <MetricCard
+          title="Cash Collected"
+          value={`$${stats.cashCollected.toLocaleString()}`}
+          icon={CreditCard}
+          highlight
+        />
+        <MetricCard
+          title="Outstanding Receivables"
+          value={`$${stats.outstandingReceivables.toLocaleString()}`}
+          icon={AlertCircle}
+          variant="warning"
+        />
+        <MetricCard
+          title="Voids (Count)"
+          value={stats.voidsCount}
+          icon={Ban}
+          subtitle={`Value: $${stats.voidsValue.toLocaleString()}`}
+        />
+        <MetricCard
+          title="Refunds (Count)"
+          value={stats.refundsCount}
+          icon={RotateCcw}
+          subtitle={`Value: $${stats.refundsValue.toLocaleString()}`}
+        />
+        {stats.chargebacksCount > 0 && (
+          <MetricCard
+            title="Chargebacks (if any)"
+            value={stats.chargebacksCount}
+            icon={AlertCircle}
+            subtitle={`Value: $${stats.chargebacksValue.toLocaleString()}`}
+            variant="warning"
+          />
+        )}
+      </div>
+
+      {/* Aging Analysis */}
+      <SectionTitle icon={Clock} title="Outstanding Receivables Aging" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Aging Buckets</CardTitle>
+          </CardHeader>
+          <CardContent className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={aging} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                <YAxis
+                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip formatter={(value: any) => `$${value.toLocaleString()}`} />
+                <Bar dataKey="amount" radius={[4, 4, 0, 0]} barSize={40}>
+                  {aging.map((_, idx) => (
+                    <Cell key={`cell-${idx}`} fill={AGING_COLORS[idx % AGING_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Outstanding Share</CardTitle>
+          </CardHeader>
+          <CardContent className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={aging}
+                  dataKey="amount"
+                  nameKey="bucket"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={90}
+                  label={({ name, value }) =>
+  `${name}: $${(Number(value) / 1000).toFixed(0)}k`
+}
+                >
+                  {aging.map((_, idx) => (
+                    <Cell key={`cell-${idx}`} fill={AGING_COLORS[idx % AGING_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: any) => `$${value.toLocaleString()}`} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary Stats */}
+      <Card className="border-indigo-200 bg-indigo-50/50 dark:border-indigo-800 dark:bg-indigo-950/20">
+        <CardContent className="p-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Collection Rate</p>
+              <p className="text-2xl font-bold">
+                {stats.invoicedAmount > 0
+                  ? ((stats.cashCollected / stats.invoicedAmount) * 100).toFixed(1)
+                  : 0}
+                %
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Outstanding % of Invoiced</p>
+              <p className="text-2xl font-bold">
+                {stats.invoicedAmount > 0
+                  ? ((stats.outstandingReceivables / stats.invoicedAmount) * 100).toFixed(1)
+                  : 0}
+                %
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Voids + Refunds % of Invoiced</p>
+              <p className="text-2xl font-bold">
+                {stats.invoicedAmount > 0
+                  ? (
+                      ((stats.voidsValue + stats.refundsValue) / stats.invoicedAmount) *
+                      100
+                    ).toFixed(1)
+                  : 0}
+                %
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
+}
+
+// ----------------------------------------------------------------------
+// Reusable Components
+// ----------------------------------------------------------------------
+function SectionTitle({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 border-l-4 border-indigo-600 pl-3">
+      <Icon className="h-5 w-5 text-indigo-600" />
+      <h2 className="text-lg font-semibold">{title}</h2>
+    </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  icon: Icon,
+  subtitle,
+  highlight = false,
+  variant = "default",
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  subtitle?: string;
+  highlight?: boolean;
+  variant?: "default" | "outline" | "warning";
+}) {
+  const variantStyles = {
+    default: "bg-card border-border",
+    outline: "bg-slate-50/70 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700",
+    warning: "bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800",
+  };
+
+  return (
+    <Card
+      className={`transition-all hover:shadow-md ${
+        highlight ? "ring-1 ring-indigo-200 dark:ring-indigo-800" : ""
+      } ${variantStyles[variant]}`}
+    >
+      <CardContent className="p-5 flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-medium text-muted-foreground">{title}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
+          {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+        <div className="rounded-full bg-muted/60 p-2.5">
+          <Icon className="h-5 w-5 text-indigo-500" />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }

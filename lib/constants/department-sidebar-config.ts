@@ -229,6 +229,11 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       href: '/dashboard/recruitment',
       icon: LayoutDashboard,
     },
+    {
+      title: 'Positions',
+      href: '/dashboard/positions',
+      icon: LayoutDashboard,
+    },
   ],
   sales: [
     {
