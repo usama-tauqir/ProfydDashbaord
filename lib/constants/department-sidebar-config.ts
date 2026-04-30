@@ -351,6 +351,11 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       href: '/dashboard/support/complaints',
       icon: MessageSquare,
     },
+    {
+      title: 'Retention',
+      href: '/dashboard/support/retention',
+      icon: TrendingUp,
+    },
 
     
   ],
