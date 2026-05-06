@@ -1,7 +1,7 @@
 // app/dashboard/support/retention/page.tsx
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ElementType } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { supabase } from "@/lib/supabase/client"
@@ -162,25 +162,50 @@ export default function RetentionPage() {
   const [sourceFilter, setSourceFilter] = useState("all")
 
   const fetchRetentionData = async () => {
-    setLoading(true)
+  setLoading(true)
 
+  try {
     const [studentsRes, followUpsRes, leftOutsRes] = await Promise.all([
-      supabase.from("current_students").select("*").order("created_at", { ascending: false }),
-      supabase.from("followup_tracker").select("*").order("follow_up_date", { ascending: true, nullsFirst: false }),
-      supabase.from("leftout_tracker").select("*").order("leaving_date", { ascending: false }).order("created_at", { ascending: false }),
+      supabase
+        .from("current_students")
+        .select("*")
+        .order("created_at", { ascending: false }),
+
+      supabase
+        .from("followup_tracker")
+        .select("*")
+        .order("follow_up_date", { ascending: true, nullsFirst: false }),
+
+      supabase
+        .from("leftout_tracker")
+        .select("*")
+        .order("leaving_date", { ascending: false })
+        .order("created_at", { ascending: false }),
     ])
 
-    if (studentsRes.error) alert(studentsRes.error.message)
-    else setStudents((studentsRes.data || []) as CurrentStudent[])
+    if (studentsRes.error) {
+      console.error("current_students error:", studentsRes.error)
+    } else {
+      setStudents((studentsRes.data || []) as CurrentStudent[])
+    }
 
-    if (followUpsRes.error) alert(followUpsRes.error.message)
-    else setFollowUps((followUpsRes.data || []) as FollowUp[])
+    if (followUpsRes.error) {
+      console.error("followup_tracker error:", followUpsRes.error)
+    } else {
+      setFollowUps((followUpsRes.data || []) as FollowUp[])
+    }
 
-    if (leftOutsRes.error) alert(leftOutsRes.error.message)
-    else setLeftOuts((leftOutsRes.data || []) as LeftOut[])
-
+    if (leftOutsRes.error) {
+      console.error("leftout_tracker error:", leftOutsRes.error)
+    } else {
+      setLeftOuts((leftOutsRes.data || []) as LeftOut[])
+    }
+  } catch (error) {
+    console.error("Retention page fetch failed:", error)
+  } finally {
     setLoading(false)
   }
+}
 
   useEffect(() => {
     fetchRetentionData()
@@ -407,7 +432,7 @@ export default function RetentionPage() {
           </Button>
 
           <Button asChild variant="outline">
-            <Link href="/dashboard/support?tab=followup">
+            <Link href="current-students">
               <PauseCircle className="mr-2 h-4 w-4" />
               Follow-Ups
             </Link>
@@ -579,7 +604,7 @@ function MetricCard({
   title: string
   value: string | number
   desc: string
-  icon: React.ElementType
+  icon: ElementType
   variant?: "default" | "success" | "danger" | "warning" | "info"
 }) {
   const styles = {

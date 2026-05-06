@@ -21,6 +21,16 @@ const ALLOWED_DEPARTMENTS = [
   "ceo",
 ] as const
 
+type DepartmentId = (typeof ALLOWED_DEPARTMENTS)[number]
+
+function normalizeDepartment(value: unknown) {
+  return String(value || "").trim().toLowerCase()
+}
+
+function isAllowedDepartment(value: string): value is DepartmentId {
+  return ALLOWED_DEPARTMENTS.includes(value as DepartmentId)
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -36,44 +46,64 @@ export default function DashboardLayout({
   }, [])
 
   const userDepartment = useMemo(() => {
-    return (
+    return normalizeDepartment(
       user?.department ||
-      (supabaseUser?.user_metadata?.department as string | undefined) ||
-      ""
+        supabaseUser?.user_metadata?.department ||
+        ""
     )
   }, [user, supabaseUser])
+
+  const isCEO = userDepartment === "ceo"
 
   useEffect(() => {
     if (!isClient || isLoading) return
 
-    // Add a small delay to allow auth state to settle
     const timeoutId = setTimeout(() => {
       if (!user && !supabaseUser) {
         router.replace("/sign-in")
         return
       }
 
+      if (!userDepartment || !isAllowedDepartment(userDepartment)) {
+        router.replace("/sign-in")
+        return
+      }
+
       const segments = pathname.split("/").filter(Boolean)
       const isDashboardRoot = pathname === "/dashboard"
-      const requestedDepartment = segments[1] || ""
+      const requestedDepartment = normalizeDepartment(segments[1])
 
       if (isDashboardRoot) {
         router.replace(`/dashboard/${userDepartment}`)
         return
       }
 
-      if (
-        requestedDepartment &&
-        ALLOWED_DEPARTMENTS.includes(requestedDepartment as (typeof ALLOWED_DEPARTMENTS)[number]) &&
-        requestedDepartment !== userDepartment
-      ) {
+      if (requestedDepartment && !isAllowedDepartment(requestedDepartment)) {
         router.replace(`/dashboard/${userDepartment}`)
         return
       }
-    }, 100) // Small delay to allow auth state to propagate
+
+      // CEO can access every department dashboard.
+      if (isCEO) return
+
+      // Non-CEO users can only access their own department dashboard.
+      if (requestedDepartment && requestedDepartment !== userDepartment) {
+        router.replace(`/dashboard/${userDepartment}`)
+        return
+      }
+    }, 100)
 
     return () => clearTimeout(timeoutId)
-  }, [isClient, isLoading, pathname, router, user, supabaseUser, userDepartment])
+  }, [
+    isClient,
+    isLoading,
+    pathname,
+    router,
+    user,
+    supabaseUser,
+    userDepartment,
+    isCEO,
+  ])
 
   if (!isClient || isLoading) {
     return (
@@ -84,7 +114,7 @@ export default function DashboardLayout({
   }
 
   if (!user && !supabaseUser) return null
-  if (!userDepartment) return null
+  if (!userDepartment || !isAllowedDepartment(userDepartment)) return null
 
   return (
     <TooltipProvider delayDuration={0}>

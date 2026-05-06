@@ -16,32 +16,28 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  Calendar,
   CheckCircle2,
   Edit3,
   Filter,
-  Globe2,
-  Layers3,
   Loader2,
-  Megaphone,
   Minus,
-  MousePointerClick,
-  PieChart as PieChartIcon,
   Plus,
   RefreshCw,
   Search,
-  Share2,
+  Target,
   Trash2,
   TrendingUp,
   Users,
+  Zap,
 } from "lucide-react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
-  Pie,
-  PieChart,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -51,7 +47,6 @@ import {
 type Market = "AU" | "UK" | "US" | "CA" | "NZ" | "EU" | "PK";
 type MarketFilter = "all" | Market;
 type LeadSource = "Meta Ads" | "Google Ads" | "Website / Organic" | "Referrals" | "Other";
-type SourceFilter = "all" | LeadSource;
 
 type LeadGenerationRecord = {
   id: string;
@@ -66,27 +61,28 @@ type LeadGenerationRecord = {
   updated_at: string | null;
 };
 
-type LeadForm = {
+type FunnelPerformanceRecord = {
+  id: string;
   month: string;
   market: Market;
-  source: LeadSource;
-  other_source: string;
-  campaign_name: string;
-  leads_count: string;
+  trials_booked: number | string;
+  trials_attended: number | string;
+  paid_conversions: number | string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
+type FunnelForm = {
+  month: string;
+  market: Market;
+  trials_booked: string;
+  trials_attended: string;
+  paid_conversions: string;
   notes: string;
 };
 
 const MARKETS: Market[] = ["AU", "UK", "US", "CA", "NZ", "EU", "PK"];
-
-const LEAD_SOURCES: LeadSource[] = [
-  "Meta Ads",
-  "Google Ads",
-  "Website / Organic",
-  "Referrals",
-  "Other",
-];
-
-const CHART_COLORS = ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#3b82f6", "#10b981", "#f59e0b"];
 
 function getCurrentMonth() {
   return new Date().toISOString().slice(0, 7);
@@ -98,14 +94,13 @@ function getPreviousMonth(month: string) {
   return date.toISOString().slice(0, 7);
 }
 
-function emptyForm(month = getCurrentMonth()): LeadForm {
+function emptyForm(month = getCurrentMonth()): FunnelForm {
   return {
     month,
     market: "AU",
-    source: "Meta Ads",
-    other_source: "",
-    campaign_name: "",
-    leads_count: "",
+    trials_booked: "",
+    trials_attended: "",
+    paid_conversions: "",
     notes: "",
   };
 }
@@ -126,9 +121,25 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value || 0);
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = String((error as { message?: unknown }).message || "");
+    if (message) return message;
+  }
+
+  if (typeof error === "string" && error) return error;
+
+  return fallback;
+}
+
 function percentage(value: number) {
   if (!Number.isFinite(value)) return "0.0%";
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+}
+
+function plainPercentage(value: number) {
+  if (!Number.isFinite(value)) return "0.0%";
+  return `${value.toFixed(1)}%`;
 }
 
 function inputClassName(extra = "") {
@@ -236,25 +247,13 @@ function MetricCard({
   );
 }
 
-function sourceIcon(source: LeadSource) {
-  const map: Record<LeadSource, React.ElementType> = {
-    "Meta Ads": Megaphone,
-    "Google Ads": MousePointerClick,
-    "Website / Organic": Globe2,
-    Referrals: Share2,
-    Other: Layers3,
-  };
-
-  return map[source];
-}
-
-export default function MarketingLeadGenerationPage() {
-  const [records, setRecords] = useState<LeadGenerationRecord[]>([]);
+export default function MarketingFunnelPerformancePage() {
+  const [funnelRecords, setFunnelRecords] = useState<FunnelPerformanceRecord[]>([]);
+  const [leadRecords, setLeadRecords] = useState<LeadGenerationRecord[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [form, setForm] = useState<LeadForm>(emptyForm());
+  const [form, setForm] = useState<FunnelForm>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -266,15 +265,25 @@ export default function MarketingLeadGenerationPage() {
       setLoading(true);
       setMessage(null);
 
-      const { data, error } = await supabase
-        .from("marketing_lead_generation_records")
-        .select("*")
-        .order("month", { ascending: false })
-        .order("created_at", { ascending: false });
+      const [funnelResponse, leadsResponse] = await Promise.all([
+        supabase
+          .from("marketing_funnel_records")
+          .select("*")
+          .order("month", { ascending: false })
+          .order("created_at", { ascending: false }),
 
-      if (error) throw error;
+        supabase
+          .from("marketing_lead_generation_records")
+          .select("*")
+          .order("month", { ascending: false })
+          .order("created_at", { ascending: false }),
+      ]);
 
-      setRecords((data || []) as LeadGenerationRecord[]);
+      if (funnelResponse.error) throw new Error(funnelResponse.error.message);
+      if (leadsResponse.error) throw new Error(leadsResponse.error.message);
+
+      setFunnelRecords((funnelResponse.data || []) as FunnelPerformanceRecord[]);
+      setLeadRecords((leadsResponse.data || []) as LeadGenerationRecord[]);
       setLastUpdated(
         new Date().toLocaleTimeString([], {
           hour: "2-digit",
@@ -282,7 +291,7 @@ export default function MarketingLeadGenerationPage() {
         })
       );
     } catch (error) {
-      const text = error instanceof Error ? error.message : "Could not load lead generation records.";
+      const text = getErrorMessage(error, "Could not load funnel performance records.");
       setMessage({ type: "error", text });
     } finally {
       setLoading(false);
@@ -293,122 +302,91 @@ export default function MarketingLeadGenerationPage() {
     fetchRecords();
   }, []);
 
-  const selectedMonthRecords = useMemo(
-    () => records.filter((record) => record.month === selectedMonth),
-    [records, selectedMonth]
+  const selectedFunnelRecords = useMemo(
+    () => funnelRecords.filter((record) => record.month === selectedMonth),
+    [funnelRecords, selectedMonth]
   );
 
-  const previousMonthRecords = useMemo(
-    () => records.filter((record) => record.month === getPreviousMonth(selectedMonth)),
-    [records, selectedMonth]
+  const selectedLeadRecords = useMemo(
+    () => leadRecords.filter((record) => record.month === selectedMonth),
+    [leadRecords, selectedMonth]
+  );
+
+  const previousFunnelRecords = useMemo(
+    () => funnelRecords.filter((record) => record.month === getPreviousMonth(selectedMonth)),
+    [funnelRecords, selectedMonth]
   );
 
   const visibleRecords = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    return selectedMonthRecords
+    return selectedFunnelRecords
       .filter((record) => marketFilter === "all" || record.market === marketFilter)
-      .filter((record) => sourceFilter === "all" || record.source === sourceFilter)
       .filter((record) => {
         if (!query) return true;
-        return [
-          record.month,
-          record.market,
-          record.source,
-          record.other_source || "",
-          record.campaign_name || "",
-          record.notes || "",
-        ]
+        return [record.month, record.market, record.notes || ""]
           .join(" ")
           .toLowerCase()
           .includes(query);
       })
-      .sort((a, b) => toCount(b.leads_count) - toCount(a.leads_count));
-  }, [selectedMonthRecords, marketFilter, sourceFilter, searchQuery]);
-
-  const totalLeads = selectedMonthRecords.reduce((sum, record) => sum + toCount(record.leads_count), 0);
-  const previousTotalLeads = previousMonthRecords.reduce((sum, record) => sum + toCount(record.leads_count), 0);
-  const monthOverMonth = previousTotalLeads ? ((totalLeads - previousTotalLeads) / previousTotalLeads) * 100 : 0;
+      .sort((a, b) => toCount(b.paid_conversions) - toCount(a.paid_conversions));
+  }, [selectedFunnelRecords, marketFilter, searchQuery]);
 
   const marketSummary = useMemo(() => {
     return MARKETS.map((market) => {
-      const marketRecords = selectedMonthRecords.filter((record) => record.market === market);
-      const total = marketRecords.reduce((sum, record) => sum + toCount(record.leads_count), 0);
-      const sources = Array.from(new Set(marketRecords.map((record) => record.source)));
-      const topSource = [...marketRecords]
-        .reduce<Record<string, number>>((map, record) => {
-          map[record.source] = (map[record.source] || 0) + toCount(record.leads_count);
-          return map;
-        }, {});
+      const marketFunnelRecords = selectedFunnelRecords.filter((record) => record.market === market);
+      const marketLeadRecords = selectedLeadRecords.filter((record) => record.market === market);
 
-      const topSourceEntry = Object.entries(topSource).sort((a, b) => b[1] - a[1])[0];
+      const leadsGenerated = marketLeadRecords.reduce((sum, record) => sum + toCount(record.leads_count), 0);
+      const trialsBooked = marketFunnelRecords.reduce((sum, record) => sum + toCount(record.trials_booked), 0);
+      const trialsAttended = marketFunnelRecords.reduce((sum, record) => sum + toCount(record.trials_attended), 0);
+      const paidConversions = marketFunnelRecords.reduce((sum, record) => sum + toCount(record.paid_conversions), 0);
 
       return {
         market,
-        total,
-        records: marketRecords.length,
-        sources,
-        topSource: topSourceEntry?.[0] || "—",
-        topSourceLeads: topSourceEntry?.[1] || 0,
+        leadsGenerated,
+        trialsBooked,
+        trialsAttended,
+        paidConversions,
+        records: marketFunnelRecords.length,
+        leadToTrialRate: leadsGenerated ? (trialsBooked / leadsGenerated) * 100 : 0,
+        attendanceRate: trialsBooked ? (trialsAttended / trialsBooked) * 100 : 0,
+        trialToPaidRate: trialsAttended ? (paidConversions / trialsAttended) * 100 : 0,
       };
     });
-  }, [selectedMonthRecords]);
+  }, [selectedFunnelRecords, selectedLeadRecords]);
 
-  const sourceSummary = useMemo(() => {
-    return LEAD_SOURCES.map((source) => {
-      const sourceRecords = selectedMonthRecords.filter((record) => record.source === source);
-      const leads = sourceRecords.reduce((sum, record) => sum + toCount(record.leads_count), 0);
-      const otherLabels = Array.from(
-        new Set(
-          sourceRecords
-            .filter((record) => record.source === "Other" && record.other_source)
-            .map((record) => record.other_source)
-        )
-      );
+  const totals = marketSummary.reduce(
+    (acc, item) => {
+      acc.leadsGenerated += item.leadsGenerated;
+      acc.trialsBooked += item.trialsBooked;
+      acc.trialsAttended += item.trialsAttended;
+      acc.paidConversions += item.paidConversions;
+      return acc;
+    },
+    {
+      leadsGenerated: 0,
+      trialsBooked: 0,
+      trialsAttended: 0,
+      paidConversions: 0,
+    }
+  );
 
-      return {
-        source,
-        leads,
-        records: sourceRecords.length,
-        otherLabels,
-      };
-    }).sort((a, b) => b.leads - a.leads);
-  }, [selectedMonthRecords]);
+  const previousPaidConversions = previousFunnelRecords.reduce(
+    (sum, record) => sum + toCount(record.paid_conversions),
+    0
+  );
 
-  const sourceMarketMatrix = useMemo(() => {
-    return MARKETS.map((market) => {
-      const marketRecords = selectedMonthRecords.filter((record) => record.market === market);
-      return {
-        market,
-        "Meta Ads": marketRecords
-          .filter((record) => record.source === "Meta Ads")
-          .reduce((sum, record) => sum + toCount(record.leads_count), 0),
-        "Google Ads": marketRecords
-          .filter((record) => record.source === "Google Ads")
-          .reduce((sum, record) => sum + toCount(record.leads_count), 0),
-        "Website / Organic": marketRecords
-          .filter((record) => record.source === "Website / Organic")
-          .reduce((sum, record) => sum + toCount(record.leads_count), 0),
-        Referrals: marketRecords
-          .filter((record) => record.source === "Referrals")
-          .reduce((sum, record) => sum + toCount(record.leads_count), 0),
-        Other: marketRecords
-          .filter((record) => record.source === "Other")
-          .reduce((sum, record) => sum + toCount(record.leads_count), 0),
-      };
-    });
-  }, [selectedMonthRecords]);
+  const paidConversionsMoM = previousPaidConversions
+    ? ((totals.paidConversions - previousPaidConversions) / previousPaidConversions) * 100
+    : 0;
 
-  const activeMarkets = marketSummary.filter((item) => item.total > 0);
-  const topMarket = [...activeMarkets].sort((a, b) => b.total - a.total)[0];
-  const topSource = sourceSummary.find((item) => item.leads > 0);
-  const averageLeadsPerRecord = selectedMonthRecords.length ? totalLeads / selectedMonthRecords.length : 0;
-  const paidSourceLeads = sourceSummary
-    .filter((item) => item.source === "Meta Ads" || item.source === "Google Ads")
-    .reduce((sum, item) => sum + item.leads, 0);
-  const organicReferralLeads = totalLeads - paidSourceLeads;
+  const topMarket = [...marketSummary].sort((a, b) => b.paidConversions - a.paidConversions)[0];
+  const bestLeadToTrialMarket = [...marketSummary]
+    .filter((item) => item.leadsGenerated > 0)
+    .sort((a, b) => b.leadToTrialRate - a.leadToTrialRate)[0];
 
-  function setFormValue<K extends keyof LeadForm>(key: K, value: LeadForm[K]) {
+  function setFormValue<K extends keyof FunnelForm>(key: K, value: FunnelForm[K]) {
     setForm((previous) => ({ ...previous, [key]: value }));
   }
 
@@ -420,20 +398,39 @@ export default function MarketingLeadGenerationPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const leadsCount = Number(form.leads_count);
+    const trialsBooked = Number(form.trials_booked);
+    const trialsAttended = Number(form.trials_attended);
+    const paidConversions = Number(form.paid_conversions);
 
-    if (!form.month || !form.market || !form.source || !Number.isFinite(leadsCount) || leadsCount < 0) {
+    if (
+      !form.month ||
+      !form.market ||
+      !Number.isFinite(trialsBooked) ||
+      !Number.isFinite(trialsAttended) ||
+      !Number.isFinite(paidConversions) ||
+      trialsBooked < 0 ||
+      trialsAttended < 0 ||
+      paidConversions < 0
+    ) {
       setMessage({
         type: "error",
-        text: "Please enter month, market, source and a valid lead count.",
+        text: "Please enter month, market, trials booked, trials attended and paid conversions.",
       });
       return;
     }
 
-    if (form.source === "Other" && !form.other_source.trim()) {
+    if (trialsAttended > trialsBooked) {
       setMessage({
         type: "error",
-        text: "Please specify the source name when Source is Other.",
+        text: "Trials attended cannot be greater than trials booked.",
+      });
+      return;
+    }
+
+    if (paidConversions > trialsAttended) {
+      setMessage({
+        type: "error",
+        text: "Paid conversions cannot be greater than trials attended.",
       });
       return;
     }
@@ -445,71 +442,78 @@ export default function MarketingLeadGenerationPage() {
       const payload = {
         month: form.month,
         market: form.market,
-        source: form.source,
-        other_source: form.source === "Other" ? form.other_source.trim() : null,
-        campaign_name: form.campaign_name.trim() || null,
-        leads_count: leadsCount,
+        trials_booked: trialsBooked,
+        trials_attended: trialsAttended,
+        paid_conversions: paidConversions,
         notes: form.notes.trim() || null,
       };
 
       const response = editingId
-        ? await supabase.from("marketing_lead_generation_records").update(payload).eq("id", editingId)
-        : await supabase.from("marketing_lead_generation_records").insert(payload);
+        ? await supabase
+            .from("marketing_funnel_records")
+            .update(payload)
+            .eq("id", editingId)
+            .select()
+            .single()
+        : await supabase
+            .from("marketing_funnel_records")
+            .insert(payload)
+            .select()
+            .single();
 
-      if (response.error) throw response.error;
+      if (response.error) throw new Error(response.error.message);
 
       setSelectedMonth(form.month);
       setMessage({
         type: "success",
-        text: editingId ? "Lead generation record updated." : "Lead generation record created.",
+        text: editingId ? "Funnel performance record updated." : "Funnel performance record created.",
       });
       resetForm();
       await fetchRecords();
     } catch (error) {
-      const text = error instanceof Error ? error.message : "Could not save this lead generation record.";
+      const text = getErrorMessage(error, "Could not save funnel performance record.");
       setMessage({ type: "error", text });
     } finally {
       setSaving(false);
     }
   }
 
-  function handleEdit(record: LeadGenerationRecord) {
+  function handleEdit(record: FunnelPerformanceRecord) {
     setEditingId(record.id);
     setForm({
       month: record.month,
       market: record.market,
-      source: record.source,
-      other_source: record.other_source || "",
-      campaign_name: record.campaign_name || "",
-      leads_count: String(record.leads_count),
+      trials_booked: String(record.trials_booked),
+      trials_attended: String(record.trials_attended),
+      paid_conversions: String(record.paid_conversions),
       notes: record.notes || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function handleDelete(record: LeadGenerationRecord) {
-    const confirmed = window.confirm(`Delete ${record.market} ${record.source} lead record?`);
+  async function handleDelete(record: FunnelPerformanceRecord) {
+    const confirmed = window.confirm(`Delete ${record.market} funnel record?`);
     if (!confirmed) return;
 
     try {
       setMessage(null);
-      const { error } = await supabase.from("marketing_lead_generation_records").delete().eq("id", record.id);
-      if (error) throw error;
+      const { error } = await supabase.from("marketing_funnel_records").delete().eq("id", record.id);
+      if (error) throw new Error(error.message);
 
-      setMessage({ type: "success", text: "Lead generation record deleted." });
+      setMessage({ type: "success", text: "Funnel performance record deleted." });
       await fetchRecords();
     } catch (error) {
-      const text = error instanceof Error ? error.message : "Could not delete this lead generation record.";
+      const text = getErrorMessage(error, "Could not delete funnel performance record.");
       setMessage({ type: "error", text });
     }
   }
 
-  if (loading && records.length === 0) {
+  if (loading && funnelRecords.length === 0 && leadRecords.length === 0) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading lead generation…</p>
+          <p className="text-sm text-muted-foreground">Loading funnel performance…</p>
         </div>
       </div>
     );
@@ -519,9 +523,9 @@ export default function MarketingLeadGenerationPage() {
     <div className="space-y-8 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Lead Generation</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Funnel Performance</h1>
           <p className="text-muted-foreground">
-            Store, update and monitor market-wise leads by source: Meta Ads, Google Ads, Website / Organic, Referrals and Other.
+            Track market-wise leads generated, trials booked, trials attended and paid conversions.
           </p>
         </div>
 
@@ -564,86 +568,84 @@ export default function MarketingLeadGenerationPage() {
         </Card>
       )}
 
-      <SectionTitle icon={Users} title="Lead Summary" />
+      <SectionTitle icon={Zap} title="Funnel Summary" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <MetricCard
-          title="Total leads generated"
-          value={formatNumber(totalLeads)}
+          title="Leads generated"
+          value={formatNumber(totals.leadsGenerated)}
           icon={Users}
-          subtitle="All sources, selected month"
-          trend={<TrendBadge direction={monthOverMonth >= 0 ? "up" : "down"} label={`${percentage(monthOverMonth)} MoM`} />}
+          subtitle="Auto-pulled from Lead Generation page"
+          trend={<TrendBadge direction="neutral" label="Automated" />}
           highlight
         />
         <MetricCard
-          title="Lead records"
-          value={selectedMonthRecords.length}
-          icon={Megaphone}
-          subtitle={`${visibleRecords.length} visible after filters`}
-          trend={<TrendBadge direction="neutral" label="Live records" />}
+          title="Trials booked"
+          value={formatNumber(totals.trialsBooked)}
+          icon={Calendar}
+          subtitle={`${plainPercentage(totals.leadsGenerated ? (totals.trialsBooked / totals.leadsGenerated) * 100 : 0)} Lead → Trial`}
         />
         <MetricCard
-          title="Active markets"
-          value={activeMarkets.length}
-          icon={BarChart3}
-          subtitle="Markets with leads this month"
-          trend={<TrendBadge direction="neutral" label={selectedMonth} />}
+          title="Trials attended"
+          value={formatNumber(totals.trialsAttended)}
+          icon={CheckCircle2}
+          subtitle={`${plainPercentage(totals.trialsBooked ? (totals.trialsAttended / totals.trialsBooked) * 100 : 0)} attendance rate`}
+        />
+        <MetricCard
+          title="Paid conversions"
+          value={formatNumber(totals.paidConversions)}
+          icon={TrendingUp}
+          subtitle={`${plainPercentage(totals.trialsAttended ? (totals.paidConversions / totals.trialsAttended) * 100 : 0)} Trial → Paid`}
+          trend={<TrendBadge direction={paidConversionsMoM >= 0 ? "up" : "down"} label={`${percentage(paidConversionsMoM)} MoM`} />}
         />
         <MetricCard
           title="Top market"
           value={topMarket?.market || "—"}
-          icon={TrendingUp}
-          subtitle={topMarket ? `${formatNumber(topMarket.total)} leads` : "No leads yet"}
-          trend={<TrendBadge direction="up" label="Highest volume" />}
-        />
-        <MetricCard
-          title="Top source"
-          value={topSource?.source || "—"}
-          icon={PieChartIcon}
-          subtitle={topSource ? `${formatNumber(topSource.leads)} leads` : "No source yet"}
+          icon={BarChart3}
+          subtitle={topMarket ? `${formatNumber(topMarket.paidConversions)} paid conversions` : "No conversions yet"}
           variant="outline"
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="Paid-source leads"
-          value={formatNumber(paidSourceLeads)}
-          icon={MousePointerClick}
-          subtitle="Meta Ads + Google Ads"
-          trend={<TrendBadge direction="neutral" label={`${totalLeads ? ((paidSourceLeads / totalLeads) * 100).toFixed(1) : 0}% share`} />}
+          title="Lead → Trial best"
+          value={bestLeadToTrialMarket?.market || "—"}
+          icon={Target}
+          subtitle={bestLeadToTrialMarket ? plainPercentage(bestLeadToTrialMarket.leadToTrialRate) : "No leads yet"}
+          trend={<TrendBadge direction="up" label="Highest rate" />}
         />
         <MetricCard
-          title="Organic / referral leads"
-          value={formatNumber(organicReferralLeads)}
-          icon={Globe2}
-          subtitle="Website, referrals and other"
-          trend={<TrendBadge direction="neutral" label={`${totalLeads ? ((organicReferralLeads / totalLeads) * 100).toFixed(1) : 0}% share`} />}
-        />
-        <MetricCard
-          title="Avg leads / record"
-          value={averageLeadsPerRecord.toFixed(1)}
-          icon={Layers3}
-          subtitle="Total leads divided by records"
-          variant="outline"
-        />
-        <MetricCard
-          title="Previous month"
-          value={formatNumber(previousTotalLeads)}
+          title="Previous paid conversions"
+          value={formatNumber(previousPaidConversions)}
           icon={RefreshCw}
           subtitle={getPreviousMonth(selectedMonth)}
           variant="outline"
         />
+        <MetricCard
+          title="Visible records"
+          value={visibleRecords.length}
+          icon={Search}
+          subtitle={`${selectedFunnelRecords.length} records this month`}
+          variant="outline"
+        />
+        <MetricCard
+          title="Active markets"
+          value={marketSummary.filter((item) => item.leadsGenerated || item.trialsBooked || item.paidConversions).length}
+          icon={Filter}
+          subtitle="Markets with funnel activity"
+          variant="outline"
+        />
       </div>
 
-      <SectionTitle icon={Plus} title={editingId ? "Update Lead Generation" : "Add Lead Generation"} />
+      <SectionTitle icon={Plus} title={editingId ? "Update Funnel Performance" : "Add Funnel Performance"} />
 
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-base">{editingId ? "Edit lead generation record" : "New lead generation record"}</CardTitle>
+            <CardTitle className="text-base">{editingId ? "Edit funnel performance record" : "New funnel performance record"}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Add one row per market/source/campaign. Total leads and source breakdowns are calculated automatically.
+              Leads generated are calculated automatically from your Lead Generation page. Add trials and paid conversions here.
             </p>
           </div>
           {editingId && (
@@ -680,58 +682,42 @@ export default function MarketingLeadGenerationPage() {
               </Select>
             </div>
 
-            <div className="lg:col-span-3">
-              <FieldLabel>Source</FieldLabel>
-              <Select value={form.source} onValueChange={(value) => setFormValue("source", value as LeadSource)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEAD_SOURCES.map((source) => (
-                    <SelectItem key={source} value={source}>
-                      {source}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="lg:col-span-3">
-              <FieldLabel>{form.source === "Other" ? "Other source name" : "Campaign / source detail"}</FieldLabel>
+            <div className="lg:col-span-2">
+              <FieldLabel>Trials booked</FieldLabel>
               <input
-                value={form.source === "Other" ? form.other_source : form.campaign_name}
-                onChange={(event) => {
-                  if (form.source === "Other") {
-                    setFormValue("other_source", event.target.value);
-                  } else {
-                    setFormValue("campaign_name", event.target.value);
-                  }
-                }}
-                placeholder={form.source === "Other" ? "Example: Webinar, WhatsApp, Influencer" : "Example: Meta Trial Leads"}
+                type="number"
+                min="0"
+                step="1"
+                value={form.trials_booked}
+                onChange={(event) => setFormValue("trials_booked", event.target.value)}
+                placeholder="120"
                 className={inputClassName()}
               />
             </div>
 
             <div className="lg:col-span-2">
-              <FieldLabel>Leads generated</FieldLabel>
+              <FieldLabel>Trials attended</FieldLabel>
               <input
                 type="number"
                 min="0"
                 step="1"
-                value={form.leads_count}
-                onChange={(event) => setFormValue("leads_count", event.target.value)}
-                placeholder="250"
+                value={form.trials_attended}
+                onChange={(event) => setFormValue("trials_attended", event.target.value)}
+                placeholder="90"
                 className={inputClassName()}
               />
             </div>
 
-            <div className="lg:col-span-10">
-              <FieldLabel>Notes</FieldLabel>
-              <textarea
-                value={form.notes}
-                onChange={(event) => setFormValue("notes", event.target.value)}
-                placeholder="Optional: landing page, audience, campaign owner, tracking issue, lead quality note, etc."
-                className={textareaClassName()}
+            <div className="lg:col-span-2">
+              <FieldLabel>Paid conversions</FieldLabel>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.paid_conversions}
+                onChange={(event) => setFormValue("paid_conversions", event.target.value)}
+                placeholder="35"
+                className={inputClassName()}
               />
             </div>
 
@@ -741,91 +727,78 @@ export default function MarketingLeadGenerationPage() {
                 {editingId ? "Update" : "Save"}
               </Button>
             </div>
+
+            <div className="lg:col-span-12">
+              <FieldLabel>Notes</FieldLabel>
+              <textarea
+                value={form.notes}
+                onChange={(event) => setFormValue("notes", event.target.value)}
+                placeholder="Optional: trial no-show reasons, sales follow-up notes, conversion blockers, quality notes, etc."
+                className={textareaClassName()}
+              />
+            </div>
           </form>
         </CardContent>
       </Card>
 
-      <SectionTitle icon={BarChart3} title="Market & Source Analysis" />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Total Leads by Market</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={marketSummary.filter((item) => item.total > 0)} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="market" tick={{ fontSize: 12 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value: unknown) => [formatNumber(toChartNumber(value)), "Leads"]} />
-                <Bar dataKey="total" name="Leads" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={36} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Lead Source Mix</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={sourceSummary.filter((item) => item.leads > 0)}
-                  dataKey="leads"
-                  nameKey="source"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={95}
-                  innerRadius={52}
-                  label={({ name, percent }) => `${String(name || "")}: ${((percent || 0) * 100).toFixed(0)}%`}
-                >
-                  {sourceSummary.map((_, index) => (
-                    <Cell key={`source-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: unknown) => [formatNumber(toChartNumber(value)), "Leads"]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+      <SectionTitle icon={BarChart3} title="Market-wise Funnel Analysis" />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Source Breakdown by Market</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Automated breakdown of Meta Ads, Google Ads, Website / Organic, Referrals and Other by market.
-          </p>
+          <CardTitle className="text-base">Funnel Performance by Market</CardTitle>
         </CardHeader>
         <CardContent className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sourceMarketMatrix.filter((item) => Object.values(item).some((value) => typeof value === "number" && value > 0))} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
+            <BarChart
+              data={marketSummary.filter(
+                (item) => item.leadsGenerated || item.trialsBooked || item.trialsAttended || item.paidConversions
+              )}
+              margin={{ top: 0, right: 10, left: -10, bottom: 0 }}
+            >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="market" tick={{ fontSize: 12 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value: unknown) => [formatNumber(toChartNumber(value)), "Leads"]} />
+              <Tooltip formatter={(value: unknown) => [formatNumber(toChartNumber(value)), ""]} />
               <Legend />
-              <Bar dataKey="Meta Ads" stackId="a" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Google Ads" stackId="a" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Website / Organic" stackId="a" fill="#818cf8" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Referrals" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Other" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="leadsGenerated" name="Leads Generated" fill="#c7d2fe" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="trialsBooked" name="Trials Booked" fill="#818cf8" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="trialsAttended" name="Trials Attended" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="paidConversions" name="Paid Conversions" fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <SectionTitle icon={Search} title="Stored Lead Records" />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Conversion Rates by Market</CardTitle>
+        </CardHeader>
+        <CardContent className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={marketSummary.filter((item) => item.leadsGenerated || item.trialsAttended)}
+              margin={{ top: 0, right: 10, left: -10, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="market" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}%`} />
+              <Tooltip formatter={(value: unknown) => [`${toChartNumber(value).toFixed(1)}%`, ""]} />
+              <Legend />
+              <Line type="monotone" dataKey="leadToTrialRate" name="Lead → Trial" stroke="#4f46e5" strokeWidth={2.5} />
+              <Line type="monotone" dataKey="attendanceRate" name="Attendance Rate" stroke="#6366f1" strokeWidth={2.5} />
+              <Line type="monotone" dataKey="trialToPaidRate" name="Trial → Paid" stroke="#10b981" strokeWidth={2.5} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <SectionTitle icon={Search} title="Stored Funnel Records" />
 
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-base">Market-wise lead records</CardTitle>
+              <CardTitle className="text-base">Market-wise funnel records</CardTitle>
               <p className="text-sm text-muted-foreground">View, filter, edit and delete records stored in Supabase.</p>
             </div>
             <Button onClick={fetchRecords} variant="outline" size="sm" disabled={loading}>
@@ -834,7 +807,7 @@ export default function MarketingLeadGenerationPage() {
             </Button>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[160px_160px_200px_1fr]">
+          <div className="grid gap-3 md:grid-cols-[160px_160px_1fr]">
             <div>
               <FieldLabel>Month</FieldLabel>
               <input
@@ -866,30 +839,13 @@ export default function MarketingLeadGenerationPage() {
             </div>
 
             <div>
-              <FieldLabel>Source</FieldLabel>
-              <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as SourceFilter)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All sources</SelectItem>
-                  {LEAD_SOURCES.map((source) => (
-                    <SelectItem key={source} value={source}>
-                      {source}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <FieldLabel>Search</FieldLabel>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search source, market, campaign, notes or other source"
+                  placeholder="Search market, month or notes"
                   className={inputClassName("pl-9")}
                 />
               </div>
@@ -904,9 +860,10 @@ export default function MarketingLeadGenerationPage() {
                 <tr>
                   <th className="px-4 py-3 font-semibold">Month</th>
                   <th className="px-4 py-3 font-semibold">Market</th>
-                  <th className="px-4 py-3 font-semibold">Source</th>
-                  <th className="px-4 py-3 font-semibold">Other / Campaign</th>
-                  <th className="px-4 py-3 font-semibold">Leads</th>
+                  <th className="px-4 py-3 font-semibold">Leads Generated</th>
+                  <th className="px-4 py-3 font-semibold">Trials Booked</th>
+                  <th className="px-4 py-3 font-semibold">Trials Attended</th>
+                  <th className="px-4 py-3 font-semibold">Paid Conversions</th>
                   <th className="px-4 py-3 font-semibold">Notes</th>
                   <th className="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
@@ -914,28 +871,25 @@ export default function MarketingLeadGenerationPage() {
               <tbody className="divide-y divide-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                       <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-indigo-600" />
                       Loading records…
                     </td>
                   </tr>
                 ) : visibleRecords.length ? (
                   visibleRecords.map((record) => {
-                    const Icon = sourceIcon(record.source);
+                    const marketLeads = selectedLeadRecords
+                      .filter((leadRecord) => leadRecord.market === record.market)
+                      .reduce((sum, leadRecord) => sum + toCount(leadRecord.leads_count), 0);
+
                     return (
                       <tr key={record.id} className="transition-colors hover:bg-muted/40">
                         <td className="px-4 py-3">{record.month}</td>
                         <td className="px-4 py-3 font-semibold">{record.market}</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-2">
-                            <Icon className="h-4 w-4 text-indigo-500" />
-                            {record.source}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 font-medium">
-                          {record.source === "Other" ? record.other_source || "—" : record.campaign_name || "—"}
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-indigo-600">{formatNumber(toCount(record.leads_count))}</td>
+                        <td className="px-4 py-3">{formatNumber(marketLeads)}</td>
+                        <td className="px-4 py-3">{formatNumber(toCount(record.trials_booked))}</td>
+                        <td className="px-4 py-3">{formatNumber(toCount(record.trials_attended))}</td>
+                        <td className="px-4 py-3 font-semibold text-indigo-600">{formatNumber(toCount(record.paid_conversions))}</td>
                         <td className="max-w-[320px] truncate px-4 py-3 text-muted-foreground">{record.notes || "—"}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
@@ -958,8 +912,8 @@ export default function MarketingLeadGenerationPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                      No lead generation records found for this filter.
+                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                      No funnel performance records found for this filter.
                     </td>
                   </tr>
                 )}
@@ -975,19 +929,22 @@ export default function MarketingLeadGenerationPage() {
         {marketSummary.map((item) => (
           <MetricCard
             key={item.market}
-            title={`${item.market} total leads`}
-            value={formatNumber(item.total)}
-            icon={Users}
-            subtitle={`${item.sources.length} sources · ${item.records} records`}
-            trend={<TrendBadge direction={item.total > 0 ? "up" : "neutral"} label={`Top: ${item.topSource}`} />}
-            variant={item.total > 0 ? "default" : "outline"}
+            title={`${item.market} funnel`}
+            value={formatNumber(item.paidConversions)}
+            icon={Target}
+            subtitle={`${formatNumber(item.leadsGenerated)} leads · ${formatNumber(item.trialsBooked)} trials booked`}
+            trend={<TrendBadge direction={item.paidConversions > 0 ? "up" : "neutral"} label={`${plainPercentage(item.trialToPaidRate)} Trial → Paid`} />}
+            variant={item.paidConversions > 0 ? "default" : "outline"}
           >
             <div className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">
-              <p className="truncate">
-                <span className="font-medium text-foreground">Sources:</span> {item.sources.length ? item.sources.join(", ") : "—"}
+              <p>
+                <span className="font-medium text-foreground">Trials attended:</span> {formatNumber(item.trialsAttended)}
               </p>
-              <p className="mt-1 truncate">
-                <span className="font-medium text-foreground">Top source leads:</span> {formatNumber(item.topSourceLeads)}
+              <p className="mt-1">
+                <span className="font-medium text-foreground">Lead → Trial:</span> {plainPercentage(item.leadToTrialRate)}
+              </p>
+              <p className="mt-1">
+                <span className="font-medium text-foreground">Attendance:</span> {plainPercentage(item.attendanceRate)}
               </p>
             </div>
           </MetricCard>

@@ -1,1325 +1,991 @@
-// "use client"
-
-// import { useEffect, useMemo, useState } from "react"
-// import Link from "next/link"
-// import {
-//   BarChart3,
-//   Users,
-//   UserCheck,
-//   TrendingUp,
-//   TrendingDown,
-//   Minus,
-//   Wallet,
-//   Target,
-//   Timer,
-//   AlertTriangle,
-//   ArrowRight,
-//   MessageCircle,
-//   Globe,
-//   RefreshCw,
-//   BadgeDollarSign,
-//   ChevronRight,
-// } from "lucide-react"
-// import {
-//   ResponsiveContainer,
-//   BarChart,
-//   Bar,
-//   XAxis,
-//   YAxis,
-//   CartesianGrid,
-//   Tooltip,
-//   FunnelChart,
-//   Funnel,
-//   LabelList,
-//   PieChart,
-//   Pie,
-//   Cell,
-//   LineChart,
-//   Line,
-// } from "recharts"
-
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-// import { Button } from "@/components/ui/button"
-// import { Badge } from "@/components/ui/badge"
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// import { Progress } from "@/components/ui/progress"
-// import { Separator } from "@/components/ui/separator"
-// import { supabase } from "@/lib/supabase/client"
-
-// type Trend = "up" | "down" | "flat"
-
-// type ExecutiveSummary = {
-//   totalNewStudentsSigned: number
-//   netActiveStudents: number
-//   totalRevenueCollected: number
-//   revenueCurrency: string
-//   performanceVsLastMonth: Trend
-//   keyWin: string
-//   keyConcern: string
-// }
-
-// type FunnelStats = {
-//   totalLeadsReceived: number
-//   qualifiedParentLeads: number
-//   trialsBooked: number
-//   trialsConducted: number
-//   paidSignUps: number
-// }
-
-// type SourceRow = {
-//   source: string
-//   market: string
-//   leads: number
-//   trials: number
-//   conducted: number
-//   paidSignUps: number
-// }
-
-// type RevenueQuality = {
-//   arpu: number
-//   packageMix: {
-//     one: number
-//     two: number
-//     three: number
-//     four: number
-//   }
-//   prepaidPercent: number
-//   partialPercent: number
-//   planUpgrades: number
-//   expectedMrrNextMonth: number
-//   areaWise: { area: string; students: number; revenue: number }[]
-// }
-
-// type Efficiency = {
-//   avgFirstResponseMinutes: number
-//   avgLeadToTrialDays: number
-//   avgTrialToPaymentDays: number
-//   followUpsPerConvertedLead: number
-// }
-
-// type DropOffRow = {
-//   reason: string
-//   approxPercent: number
-// }
-
-// type SupportNeeds = {
-//   salesNeedsFromCEO: string
-//   salesNeedsFromMarketing: string
-//   salesWillChangeNextMonth: string
-// }
-
-// type DashboardData = {
-//   owner: string
-//   frequency: string
-//   monthLabel: string
-//   executive: ExecutiveSummary
-//   funnel: FunnelStats
-//   sources: SourceRow[]
-//   revenueQuality: RevenueQuality
-//   efficiency: Efficiency
-//   dropOffs: DropOffRow[]
-//   support: SupportNeeds
-// }
-
-// const SOURCE_COLORS = ["#5747EA", "#7A6CFF", "#4FA0FF", "#36D1C4", "#A78BFA"]
-
-// const defaultData: DashboardData = {
-//   owner: "Sales Manager",
-//   frequency: "Monthly",
-//   monthLabel: "This Month",
-//   executive: {
-//     totalNewStudentsSigned: 86,
-//     netActiveStudents: 71,
-//     totalRevenueCollected: 48250,
-//     revenueCurrency: "AUD",
-//     performanceVsLastMonth: "up",
-//     keyWin: "AU WhatsApp ads improved paid conversion after faster follow-up flow.",
-//     keyConcern: "NZ trial-to-paid conversion is lagging and needs offer refinement.",
-//   },
-//   funnel: {
-//     totalLeadsReceived: 412,
-//     qualifiedParentLeads: 284,
-//     trialsBooked: 162,
-//     trialsConducted: 131,
-//     paidSignUps: 86,
-//   },
-//   sources: [
-//     { source: "WhatsApp Ads", market: "AU", leads: 144, trials: 62, conducted: 51, paidSignUps: 36 },
-//     { source: "WhatsApp Ads", market: "NZ", leads: 76, trials: 23, conducted: 18, paidSignUps: 9 },
-//     { source: "Website", market: "Global", leads: 102, trials: 44, conducted: 35, paidSignUps: 24 },
-//     { source: "Referrals", market: "Global", leads: 61, trials: 25, conducted: 21, paidSignUps: 15 },
-//     { source: "Other", market: "Global", leads: 29, trials: 8, conducted: 6, paidSignUps: 2 },
-//   ],
-//   revenueQuality: {
-//     arpu: 561,
-//     packageMix: { one: 24, two: 38, three: 23, four: 15 },
-//     prepaidPercent: 68,
-//     partialPercent: 32,
-//     planUpgrades: 11,
-//     expectedMrrNextMonth: 12900,
-//     areaWise: [
-//       { area: "Sydney", students: 22, revenue: 12100 },
-//       { area: "Melbourne", students: 19, revenue: 10850 },
-//       { area: "Auckland", students: 12, revenue: 6530 },
-//       { area: "Perth", students: 9, revenue: 4720 },
-//     ],
-//   },
-//   efficiency: {
-//     avgFirstResponseMinutes: 8,
-//     avgLeadToTrialDays: 2.4,
-//     avgTrialToPaymentDays: 3.2,
-//     followUpsPerConvertedLead: 4.1,
-//   },
-//   dropOffs: [
-//     { reason: "Price", approxPercent: 28 },
-//     { reason: "Timing / holidays", approxPercent: 21 },
-//     { reason: "No response", approxPercent: 19 },
-//     { reason: "Comparison shopping", approxPercent: 14 },
-//     { reason: "Academic mismatch", approxPercent: 10 },
-//     { reason: "Other", approxPercent: 8 },
-//   ],
-//   support: {
-//     salesNeedsFromCEO: "Approval for market-specific intro offers and faster fee exception approvals.",
-//     salesNeedsFromMarketing: "Higher quality AU/NZ parent lead targeting and better landing page copy.",
-//     salesWillChangeNextMonth: "Tighter 15-minute first-response SLA and segmented follow-up scripts by market.",
-//   },
-// }
-
-// function trendMeta(trend: Trend) {
-//   if (trend === "up") return { label: "Up", icon: TrendingUp, className: "text-emerald-500" }
-//   if (trend === "down") return { label: "Down", icon: TrendingDown, className: "text-rose-500" }
-//   return { label: "Flat", icon: Minus, className: "text-amber-500" }
-// }
-
-// function calcPercent(numerator: number, denominator: number) {
-//   if (!denominator) return 0
-//   return Number(((numerator / denominator) * 100).toFixed(1))
-// }
-
-// function StatCard({
-//   title,
-//   value,
-//   subtitle,
-//   icon: Icon,
-// }: {
-//   title: string
-//   value: string | number
-//   subtitle: string
-//   icon: React.ComponentType<{ className?: string }>
-// }) {
-//   return (
-//     <Card className="border-border/60 shadow-sm">
-//       <CardContent className="p-5">
-//         <div className="flex items-start justify-between gap-4">
-//           <div>
-//             <p className="text-sm text-muted-foreground">{title}</p>
-//             <h3 className="mt-2 text-2xl font-semibold tracking-tight">{value}</h3>
-//             <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-//           </div>
-//           <div className="rounded-2xl border bg-muted/60 p-3">
-//             <Icon className="h-5 w-5" />
-//           </div>
-//         </div>
-//       </CardContent>
-//     </Card>
-//   )
-// }
-
-// export default function SalesDashboardPage() {
-//   const [data, setData] = useState<DashboardData>(defaultData)
-//   const [loading, setLoading] = useState(true)
-
-//   useEffect(() => {
-//     const fetchDashboardData = async () => {
-//       try {
-//         // Replace these queries with your actual Supabase schema.
-//         // This starter is safe because it falls back to mock data.
-//         const currentMonth = new Date().toISOString().slice(0, 7)
-
-//         const { data: salesRows } = await supabase
-//           .from("sales_monthly_report")
-//           .select("*")
-//           .eq("report_month", currentMonth)
-//           .maybeSingle()
-
-//         const { data: sourceRows } = await supabase
-//           .from("sales_source_performance")
-//           .select("*")
-//           .eq("report_month", currentMonth)
-
-//         const { data: areaRows } = await supabase
-//           .from("sales_area_breakdown")
-//           .select("*")
-//           .eq("report_month", currentMonth)
-
-//         const { data: dropRows } = await supabase
-//           .from("sales_dropoff_reasons")
-//           .select("*")
-//           .eq("report_month", currentMonth)
-
-//         if (salesRows) {
-//           setData({
-//             owner: salesRows.owner ?? defaultData.owner,
-//             frequency: salesRows.frequency ?? defaultData.frequency,
-//             monthLabel: salesRows.month_label ?? defaultData.monthLabel,
-//             executive: {
-//               totalNewStudentsSigned: salesRows.total_new_students_signed ?? defaultData.executive.totalNewStudentsSigned,
-//               netActiveStudents: salesRows.net_active_students ?? defaultData.executive.netActiveStudents,
-//               totalRevenueCollected: salesRows.total_revenue_collected ?? defaultData.executive.totalRevenueCollected,
-//               revenueCurrency: salesRows.revenue_currency ?? defaultData.executive.revenueCurrency,
-//               performanceVsLastMonth: salesRows.performance_vs_last_month ?? defaultData.executive.performanceVsLastMonth,
-//               keyWin: salesRows.key_win ?? defaultData.executive.keyWin,
-//               keyConcern: salesRows.key_concern ?? defaultData.executive.keyConcern,
-//             },
-//             funnel: {
-//               totalLeadsReceived: salesRows.total_leads_received ?? defaultData.funnel.totalLeadsReceived,
-//               qualifiedParentLeads: salesRows.qualified_parent_leads ?? defaultData.funnel.qualifiedParentLeads,
-//               trialsBooked: salesRows.trials_booked ?? defaultData.funnel.trialsBooked,
-//               trialsConducted: salesRows.trials_conducted ?? defaultData.funnel.trialsConducted,
-//               paidSignUps: salesRows.paid_sign_ups ?? defaultData.funnel.paidSignUps,
-//             },
-//             sources:
-//               sourceRows?.map((row: any) => ({
-//                 source: row.source,
-//                 market: row.market,
-//                 leads: row.leads,
-//                 trials: row.trials,
-//                 conducted: row.conducted,
-//                 paidSignUps: row.paid_sign_ups,
-//               })) ?? defaultData.sources,
-//             revenueQuality: {
-//               arpu: salesRows.arpu ?? defaultData.revenueQuality.arpu,
-//               packageMix: {
-//                 one: salesRows.package_1x_percent ?? defaultData.revenueQuality.packageMix.one,
-//                 two: salesRows.package_2x_percent ?? defaultData.revenueQuality.packageMix.two,
-//                 three: salesRows.package_3x_percent ?? defaultData.revenueQuality.packageMix.three,
-//                 four: salesRows.package_4x_percent ?? defaultData.revenueQuality.packageMix.four,
-//               },
-//               prepaidPercent: salesRows.prepaid_percent ?? defaultData.revenueQuality.prepaidPercent,
-//               partialPercent: salesRows.partial_percent ?? defaultData.revenueQuality.partialPercent,
-//               planUpgrades: salesRows.plan_upgrades ?? defaultData.revenueQuality.planUpgrades,
-//               expectedMrrNextMonth: salesRows.expected_mrr_next_month ?? defaultData.revenueQuality.expectedMrrNextMonth,
-//               areaWise:
-//                 areaRows?.map((row: any) => ({
-//                   area: row.area,
-//                   students: row.students,
-//                   revenue: row.revenue,
-//                 })) ?? defaultData.revenueQuality.areaWise,
-//             },
-//             efficiency: {
-//               avgFirstResponseMinutes: salesRows.avg_first_response_minutes ?? defaultData.efficiency.avgFirstResponseMinutes,
-//               avgLeadToTrialDays: salesRows.avg_lead_to_trial_days ?? defaultData.efficiency.avgLeadToTrialDays,
-//               avgTrialToPaymentDays: salesRows.avg_trial_to_payment_days ?? defaultData.efficiency.avgTrialToPaymentDays,
-//               followUpsPerConvertedLead: salesRows.followups_per_converted_lead ?? defaultData.efficiency.followUpsPerConvertedLead,
-//             },
-//             dropOffs:
-//               dropRows?.map((row: any) => ({
-//                 reason: row.reason,
-//                 approxPercent: row.approx_percent,
-//               })) ?? defaultData.dropOffs,
-//             support: {
-//               salesNeedsFromCEO: salesRows.sales_needs_from_ceo ?? defaultData.support.salesNeedsFromCEO,
-//               salesNeedsFromMarketing: salesRows.sales_needs_from_marketing ?? defaultData.support.salesNeedsFromMarketing,
-//               salesWillChangeNextMonth: salesRows.sales_will_change_next_month ?? defaultData.support.salesWillChangeNextMonth,
-//             },
-//           })
-//         }
-//       } catch (error) {
-//         console.error("Failed to load sales dashboard:", error)
-//       } finally {
-//         setLoading(false)
-//       }
-//     }
-
-//     fetchDashboardData()
-//   }, [])
-
-//   const leadToTrial = useMemo(
-//     () => calcPercent(data.funnel.trialsBooked, data.funnel.totalLeadsReceived),
-//     [data.funnel]
-//   )
-//   const leadToPaid = useMemo(
-//     () => calcPercent(data.funnel.paidSignUps, data.funnel.totalLeadsReceived),
-//     [data.funnel]
-//   )
-//   const trialToPaid = useMemo(
-//     () => calcPercent(data.funnel.paidSignUps, data.funnel.trialsConducted),
-//     [data.funnel]
-//   )
-
-//   const trend = trendMeta(data.executive.performanceVsLastMonth)
-//   const TrendIcon = trend.icon
-
-//   const sourceChartData = data.sources.map((item) => ({
-//     name: `${item.source} ${item.market}`,
-//     Leads: item.leads,
-//     Trials: item.trials,
-//     Paid: item.paidSignUps,
-//   }))
-
-//   const funnelData = [
-//     { value: data.funnel.totalLeadsReceived, name: "Leads" },
-//     { value: data.funnel.qualifiedParentLeads, name: "Qualified" },
-//     { value: data.funnel.trialsBooked, name: "Trials Booked" },
-//     { value: data.funnel.trialsConducted, name: "Trials Done" },
-//     { value: data.funnel.paidSignUps, name: "Paid" },
-//   ]
-
-//   const packageMixData = [
-//     { name: "1x/week", value: data.revenueQuality.packageMix.one },
-//     { name: "2x/week", value: data.revenueQuality.packageMix.two },
-//     { name: "3x/week", value: data.revenueQuality.packageMix.three },
-//     { name: "4x/week", value: data.revenueQuality.packageMix.four },
-//   ]
-
-//   if (loading) {
-//     return (
-//       <div className="flex h-[60vh] items-center justify-center">
-//         <div className="flex items-center gap-3 rounded-2xl border bg-background px-5 py-3 shadow-sm">
-//           <RefreshCw className="h-4 w-4 animate-spin" />
-//           <span className="text-sm text-muted-foreground">Loading sales dashboard...</span>
-//         </div>
-//       </div>
-//     )
-//   }
-
-//   return (
-//     <div className="space-y-6 p-1">
-//       <div className="rounded-[28px] border bg-background/80 p-6 shadow-sm backdrop-blur-sm">
-//         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-//           <div className="space-y-2">
-//             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-muted-foreground">
-//               <Badge variant="secondary" className="rounded-full px-3 py-1">Sales</Badge>
-//               <span>{data.frequency}</span>
-//               <span>•</span>
-//               <span>{data.monthLabel}</span>
-//             </div>
-//             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Sales Performance Dashboard</h1>
-//             <p className="max-w-3xl text-sm text-muted-foreground">
-//               A Nexus-inspired executive dashboard for monitoring lead flow, sign-ups, revenue quality, efficiency,
-//               and support actions across markets.
-//             </p>
-//           </div>
-
-//           <div className="grid gap-3 sm:grid-cols-2">
-//             <div className="rounded-3xl border bg-muted/40 px-4 py-3">
-//               <p className="text-xs text-muted-foreground">Owner</p>
-//               <p className="mt-1 font-medium">{data.owner}</p>
-//             </div>
-//             <div className="rounded-3xl border bg-muted/40 px-4 py-3">
-//               <p className="text-xs text-muted-foreground">Performance</p>
-//               <div className={`mt-1 flex items-center gap-2 font-medium ${trend.className}`}>
-//                 <TrendIcon className="h-4 w-4" />
-//                 {trend.label} vs last month
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-//         <StatCard
-//           title="New Students Signed"
-//           value={data.executive.totalNewStudentsSigned}
-//           subtitle="Total signed this month"
-//           icon={UserCheck}
-//         />
-//         <StatCard
-//           title="Net Active Students"
-//           value={data.executive.netActiveStudents}
-//           subtitle="After drop-offs"
-//           icon={Users}
-//         />
-//         <StatCard
-//           title="Revenue Collected"
-//           value={`${data.executive.revenueCurrency} ${data.executive.totalRevenueCollected.toLocaleString()}`}
-//           subtitle="Collected this month"
-//           icon={Wallet}
-//         />
-//         <StatCard
-//           title="Expected Next MRR"
-//           value={`${data.executive.revenueCurrency} ${data.revenueQuality.expectedMrrNextMonth.toLocaleString()}`}
-//           subtitle="From next-month joiners"
-//           icon={BadgeDollarSign}
-//         />
-//       </div>
-
-//       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
-//         <Card className="rounded-[28px] border-border/60 shadow-sm">
-//           <CardHeader className="pb-2">
-//             <CardTitle>Executive Summary</CardTitle>
-//             <CardDescription>Keep this block to five lines max in production.</CardDescription>
-//           </CardHeader>
-//           <CardContent className="space-y-4">
-//             <div className="grid gap-3 md:grid-cols-2">
-//               <div className="rounded-2xl border bg-muted/30 p-4">
-//                 <p className="text-sm text-muted-foreground">One key win</p>
-//                 <p className="mt-2 text-sm font-medium leading-6">{data.executive.keyWin}</p>
-//               </div>
-//               <div className="rounded-2xl border bg-muted/30 p-4">
-//                 <p className="text-sm text-muted-foreground">One key concern</p>
-//                 <p className="mt-2 text-sm font-medium leading-6">{data.executive.keyConcern}</p>
-//               </div>
-//             </div>
-
-//             <div className="grid gap-3 sm:grid-cols-3">
-//               <div className="rounded-2xl border p-4">
-//                 <p className="text-xs text-muted-foreground">Lead → Trial</p>
-//                 <p className="mt-2 text-xl font-semibold">{leadToTrial}%</p>
-//               </div>
-//               <div className="rounded-2xl border p-4">
-//                 <p className="text-xs text-muted-foreground">Lead → Paid</p>
-//                 <p className="mt-2 text-xl font-semibold">{leadToPaid}%</p>
-//               </div>
-//               <div className="rounded-2xl border p-4">
-//                 <p className="text-xs text-muted-foreground">Trial → Paid</p>
-//                 <p className="mt-2 text-xl font-semibold">{trialToPaid}%</p>
-//               </div>
-//             </div>
-//           </CardContent>
-//         </Card>
-
-//         <Card className="rounded-[28px] border-border/60 shadow-sm">
-//           <CardHeader>
-//             <CardTitle>Lead Funnel Overview</CardTitle>
-//             <CardDescription>Progress from inbound lead to paid sign-up.</CardDescription>
-//           </CardHeader>
-//           <CardContent>
-//             <div className="h-[320px]">
-//               <ResponsiveContainer width="100%" height="100%">
-//                 <FunnelChart>
-//                   <Tooltip />
-//                   <Funnel dataKey="value" data={funnelData} isAnimationActive>
-//                     <LabelList position="right" fill="currentColor" stroke="none" dataKey="name" />
-//                   </Funnel>
-//                 </FunnelChart>
-//               </ResponsiveContainer>
-//             </div>
-//           </CardContent>
-//         </Card>
-//       </div>
-
-//       <Tabs defaultValue="sources" className="space-y-6">
-//         <TabsList className="h-auto flex-wrap rounded-2xl border bg-background p-2">
-//           <TabsTrigger value="sources">Source-wise Performance</TabsTrigger>
-//           <TabsTrigger value="revenue">Revenue Quality</TabsTrigger>
-//           <TabsTrigger value="efficiency">Sales Efficiency</TabsTrigger>
-//           <TabsTrigger value="dropoffs">Drop-offs</TabsTrigger>
-//           <TabsTrigger value="actions">Action Items</TabsTrigger>
-//         </TabsList>
-
-//         <TabsContent value="sources" className="space-y-6">
-//           <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
-//             <Card className="rounded-[28px]">
-//               <CardHeader>
-//                 <CardTitle>Source-wise Performance</CardTitle>
-//                 <CardDescription>Leads, trials, and paid sign-ups by source and market.</CardDescription>
-//               </CardHeader>
-//               <CardContent>
-//                 <div className="h-[340px]">
-//                   <ResponsiveContainer width="100%" height="100%">
-//                     <BarChart data={sourceChartData}>
-//                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-//                       <XAxis dataKey="name" tickLine={false} axisLine={false} />
-//                       <YAxis tickLine={false} axisLine={false} />
-//                       <Tooltip />
-//                       <Bar dataKey="Leads" radius={[8, 8, 0, 0]} fill="#5747EA" />
-//                       <Bar dataKey="Trials" radius={[8, 8, 0, 0]} fill="#4FA0FF" />
-//                       <Bar dataKey="Paid" radius={[8, 8, 0, 0]} fill="#36D1C4" />
-//                     </BarChart>
-//                   </ResponsiveContainer>
-//                 </div>
-//               </CardContent>
-//             </Card>
-
-//             <Card className="rounded-[28px]">
-//               <CardHeader>
-//                 <CardTitle>Source Table</CardTitle>
-//                 <CardDescription>Market-wise rows to match your reporting format.</CardDescription>
-//               </CardHeader>
-//               <CardContent className="space-y-4">
-//                 {data.sources.map((row, index) => {
-//                   const conversion = calcPercent(row.paidSignUps, row.leads)
-//                   return (
-//                     <div key={`${row.source}-${row.market}`} className="rounded-2xl border p-4">
-//                       <div className="mb-3 flex items-center justify-between gap-4">
-//                         <div>
-//                           <p className="font-medium">{row.source} – {row.market}</p>
-//                           <p className="text-xs text-muted-foreground">Lead to paid conversion</p>
-//                         </div>
-//                         <Badge variant="secondary" className="rounded-full">{conversion}%</Badge>
-//                       </div>
-//                       <Progress value={Math.min(conversion, 100)} className="mb-3 h-2" />
-//                       <div className="grid grid-cols-4 gap-2 text-sm">
-//                         <div><span className="text-muted-foreground">Leads</span><p className="font-semibold">{row.leads}</p></div>
-//                         <div><span className="text-muted-foreground">Trials</span><p className="font-semibold">{row.trials}</p></div>
-//                         <div><span className="text-muted-foreground">Done</span><p className="font-semibold">{row.conducted}</p></div>
-//                         <div><span className="text-muted-foreground">Paid</span><p className="font-semibold">{row.paidSignUps}</p></div>
-//                       </div>
-//                       <div className="mt-3 h-1.5 rounded-full" style={{ background: SOURCE_COLORS[index % SOURCE_COLORS.length] }} />
-//                     </div>
-//                   )
-//                 })}
-//               </CardContent>
-//             </Card>
-//           </div>
-//         </TabsContent>
-
-//         <TabsContent value="revenue" className="space-y-6">
-//           <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-//             <Card className="rounded-[28px]">
-//               <CardHeader>
-//                 <CardTitle>Revenue Quality</CardTitle>
-//                 <CardDescription>ARPU, package mix, payments, and upgrades.</CardDescription>
-//               </CardHeader>
-//               <CardContent className="space-y-4">
-//                 <div className="grid grid-cols-2 gap-3">
-//                   <div className="rounded-2xl border p-4">
-//                     <p className="text-xs text-muted-foreground">ARPU</p>
-//                     <p className="mt-2 text-2xl font-semibold">{data.executive.revenueCurrency} {data.revenueQuality.arpu}</p>
-//                   </div>
-//                   <div className="rounded-2xl border p-4">
-//                     <p className="text-xs text-muted-foreground">Plan upgrades</p>
-//                     <p className="mt-2 text-2xl font-semibold">{data.revenueQuality.planUpgrades}</p>
-//                   </div>
-//                   <div className="rounded-2xl border p-4">
-//                     <p className="text-xs text-muted-foreground">Prepaid</p>
-//                     <p className="mt-2 text-2xl font-semibold">{data.revenueQuality.prepaidPercent}%</p>
-//                   </div>
-//                   <div className="rounded-2xl border p-4">
-//                     <p className="text-xs text-muted-foreground">Partial payments</p>
-//                     <p className="mt-2 text-2xl font-semibold">{data.revenueQuality.partialPercent}%</p>
-//                   </div>
-//                 </div>
-
-//                 <Separator />
-
-//                 <div>
-//                   <p className="mb-3 text-sm font-medium">Area-wise categorisation</p>
-//                   <div className="space-y-3">
-//                     {data.revenueQuality.areaWise.map((item) => (
-//                       <div key={item.area} className="rounded-2xl border p-4">
-//                         <div className="mb-2 flex items-center justify-between">
-//                           <span className="font-medium">{item.area}</span>
-//                           <span className="text-sm text-muted-foreground">{data.executive.revenueCurrency} {item.revenue.toLocaleString()}</span>
-//                         </div>
-//                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-//                           <span>{item.students} students</span>
-//                           <span>{calcPercent(item.revenue, data.executive.totalRevenueCollected)}% of revenue</span>
-//                         </div>
-//                       </div>
-//                     ))}
-//                   </div>
-//                 </div>
-//               </CardContent>
-//             </Card>
-
-//             <div className="grid gap-6">
-//               <Card className="rounded-[28px]">
-//                 <CardHeader>
-//                   <CardTitle>Package Mix</CardTitle>
-//                   <CardDescription>Weekly frequency split.</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="h-[280px]">
-//                     <ResponsiveContainer width="100%" height="100%">
-//                       <PieChart>
-//                         <Pie data={packageMixData} dataKey="value" nameKey="name" innerRadius={70} outerRadius={100} paddingAngle={4}>
-//                           {packageMixData.map((entry, index) => (
-//                             <Cell key={entry.name} fill={SOURCE_COLORS[index % SOURCE_COLORS.length]} />
-//                           ))}
-//                         </Pie>
-//                         <Tooltip />
-//                       </PieChart>
-//                     </ResponsiveContainer>
-//                   </div>
-//                 </CardContent>
-//               </Card>
-
-//               <Card className="rounded-[28px]">
-//                 <CardHeader>
-//                   <CardTitle>Revenue Trend Preview</CardTitle>
-//                   <CardDescription>Optional visual if you store historical monthly revenue.</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="h-[220px]">
-//                     <ResponsiveContainer width="100%" height="100%">
-//                       <LineChart data={[
-//                         { month: "Jan", value: 32200 },
-//                         { month: "Feb", value: 34800 },
-//                         { month: "Mar", value: 36750 },
-//                         { month: "Apr", value: 39200 },
-//                         { month: "May", value: 43500 },
-//                         { month: "Jun", value: data.executive.totalRevenueCollected },
-//                       ]}>
-//                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-//                         <XAxis dataKey="month" tickLine={false} axisLine={false} />
-//                         <YAxis tickLine={false} axisLine={false} />
-//                         <Tooltip />
-//                         <Line type="monotone" dataKey="value" stroke="#5747EA" strokeWidth={3} dot={false} />
-//                       </LineChart>
-//                     </ResponsiveContainer>
-//                   </div>
-//                 </CardContent>
-//               </Card>
-//             </div>
-//           </div>
-//         </TabsContent>
-
-//         <TabsContent value="efficiency" className="space-y-6">
-//           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-//             <StatCard title="Avg first response" value={`${data.efficiency.avgFirstResponseMinutes} min`} subtitle="New lead response time" icon={Timer} />
-//             <StatCard title="Lead → Trial" value={`${data.efficiency.avgLeadToTrialDays} days`} subtitle="Average speed to book" icon={Target} />
-//             <StatCard title="Trial → Payment" value={`${data.efficiency.avgTrialToPaymentDays} days`} subtitle="Average payment time" icon={ArrowRight} />
-//             <StatCard title="Follow-ups / converted lead" value={data.efficiency.followUpsPerConvertedLead} subtitle="Average follow-up count" icon={MessageCircle} />
-//           </div>
-//         </TabsContent>
-
-//         <TabsContent value="dropoffs" className="space-y-6">
-//           <Card className="rounded-[28px]">
-//             <CardHeader>
-//               <CardTitle>Drop-offs & Loss Reasons</CardTitle>
-//               <CardDescription>Approximate percentages by main reason.</CardDescription>
-//             </CardHeader>
-//             <CardContent className="space-y-4">
-//               {data.dropOffs.map((item, index) => (
-//                 <div key={item.reason} className="rounded-2xl border p-4">
-//                   <div className="mb-2 flex items-center justify-between gap-4">
-//                     <div className="flex items-center gap-2">
-//                       <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-//                       <span className="font-medium">{item.reason}</span>
-//                     </div>
-//                     <span className="text-sm font-semibold">{item.approxPercent}%</span>
-//                   </div>
-//                   <div className="h-2 rounded-full bg-muted">
-//                     <div className="h-2 rounded-full" style={{ width: `${item.approxPercent}%`, background: SOURCE_COLORS[index % SOURCE_COLORS.length] }} />
-//                   </div>
-//                 </div>
-//               ))}
-//             </CardContent>
-//           </Card>
-//         </TabsContent>
-
-//         <TabsContent value="actions" className="space-y-6">
-//           <div className="grid gap-6 lg:grid-cols-3">
-//             <Card className="rounded-[28px]">
-//               <CardHeader>
-//                 <CardTitle>Need from CEO</CardTitle>
-//               </CardHeader>
-//               <CardContent>
-//                 <p className="text-sm leading-6 text-muted-foreground">{data.support.salesNeedsFromCEO}</p>
-//               </CardContent>
-//             </Card>
-//             <Card className="rounded-[28px]">
-//               <CardHeader>
-//                 <CardTitle>Need from Marketing</CardTitle>
-//               </CardHeader>
-//               <CardContent>
-//                 <p className="text-sm leading-6 text-muted-foreground">{data.support.salesNeedsFromMarketing}</p>
-//               </CardContent>
-//             </Card>
-//             <Card className="rounded-[28px]">
-//               <CardHeader>
-//                 <CardTitle>What changes next month</CardTitle>
-//               </CardHeader>
-//               <CardContent>
-//                 <p className="text-sm leading-6 text-muted-foreground">{data.support.salesWillChangeNextMonth}</p>
-//               </CardContent>
-//             </Card>
-//           </div>
-//         </TabsContent>
-//       </Tabs>
-
-//       <Card className="rounded-[28px] border-border/60 shadow-sm">
-//         <CardHeader>
-//           <CardTitle>Recommended Routes</CardTitle>
-//           <CardDescription>Create separate pages under /dashboard/sales for your detailed views.</CardDescription>
-//         </CardHeader>
-//         <CardContent>
-//           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-//             {[
-//               { href: "/dashboard/sales/executive-summary", label: "Executive Summary", icon: BarChart3 },
-//               { href: "/dashboard/sales/lead-funnel", label: "Lead Funnel Overview", icon: Target },
-//               { href: "/dashboard/sales/source-performance", label: "Source-wise Performance", icon: Globe },
-//               { href: "/dashboard/sales/revenue-quality", label: "Revenue Quality", icon: Wallet },
-//               { href: "/dashboard/sales/sales-efficiency", label: "Sales Efficiency", icon: Timer },
-//               { href: "/dashboard/sales/dropoffs", label: "Drop-offs & Loss Reasons", icon: TrendingDown },
-//               { href: "/dashboard/sales/agent-performance", label: "Action Items / Support Needed", icon: ChevronRight },
-//             ].map((item) => {
-//               const Icon = item.icon
-//               return (
-//                 <Button key={item.href} asChild variant="outline" className="h-auto justify-start rounded-2xl p-4">
-//                   <Link href={item.href}>
-//                     <Icon className="mr-3 h-4 w-4" />
-//                     {item.label}
-//                   </Link>
-//                 </Button>
-//               )
-//             })}
-//           </div>
-//         </CardContent>
-//       </Card>
-//     </div>
-//   )
-// }
-
-
-// app/dashboard/sales/page.tsx
-// app/dashboard/sales/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
+import type { ElementType, ReactNode } from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Users,
-  UserPlus,
-  DollarSign,
-  TrendingUp,
-  BarChart3,
-  Target,
-  Phone,
-  Clock,
   AlertTriangle,
-  ThumbsUp,
-  ArrowUpRight,
   ArrowDownRight,
-  Minus,
-  RefreshCw,
-  Megaphone,
-  Activity,
+  ArrowRight,
+  ArrowUpRight,
+  BadgeDollarSign,
+  BarChart3,
+  CheckCircle2,
+  Clock3,
+  DollarSign,
+  Globe2,
+  Layers3,
+  MessageCircle,
+  PieChart as PieChartLucide,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  UserCheck,
+  Users,
+  WalletCards,
 } from "lucide-react";
 import {
-  BarChart,
+  Area,
+  AreaChart,
   Bar,
-  XAxis,
-  YAxis,
+  BarChart,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
   Cell,
   Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
+  RadialBar,
+  RadialBarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 
-// ----------------------------------------------------------------------
-// Types
-// ----------------------------------------------------------------------
-type Period = "all" | "today" | "weekly" | "monthly" | "yearly";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
-interface ExecutiveSummary {
-  newSignUps: number;
-  netActive: number;
-  totalRevenue: number;
-  revenueTrend: "up" | "down" | "neutral";
-  volumeTrend: "up" | "down" | "neutral";
-  costTrend: "up" | "down" | "neutral";
-  keyWin: string;
-  keyConcern: string;
-}
+// app/dashboard/sales/page.tsx
+// Dashboard content only: no sidebar, no header, no popups, no routing cards.
+// Your existing app layout can keep the header/sidebar and your existing light/dark/system toggle.
 
-interface FunnelStage {
-  stage: string;
-  count: number;
-}
+type Trend = "up" | "down" | "flat";
 
-interface SourcePerformance {
+type SourceRow = {
   source: string;
   leads: number;
   trials: number;
+  conducted: number;
   paidSignUps: number;
   conversion: number;
-}
-
-interface RevenueQuality {
-  arpu: number;
-  packageMix: { name: string; value: number }[];
-  prepaidPercent: number;
-  planUpgrades: number;
-  expectedMRR: number;
-}
-
-interface SalesEfficiency {
-  avgFirstResponseMin: number;
-  avgLeadToTrialDays: number;
-  avgTrialToPaymentDays: number;
-  avgFollowUpsPerConversion: number;
-}
-
-interface DropOffReason {
-  reason: string;
-  percentage: number;
-}
-
-interface ActionItem {
-  category: "ceo" | "marketing" | "sales";
-  text: string;
-}
-
-// ----------------------------------------------------------------------
-// Mock data generator (scales with period)
-// ----------------------------------------------------------------------
-const getMockData = (period: Period) => {
-  const factor =
-    period === "all"
-      ? 1
-      : period === "yearly"
-      ? 1
-      : period === "monthly"
-      ? 1 / 12
-      : period === "weekly"
-      ? 1 / 52
-      : 1 / 365;
-
-  const scale = (val: number) => Math.round(val * factor);
-
-  const exec: ExecutiveSummary = {
-    newSignUps: scale(85),
-    netActive: scale(1233),
-    totalRevenue: scale(148500),
-    revenueTrend: "up",
-    volumeTrend: "neutral",
-    costTrend: "down",
-    keyWin: "Upsell revenue grew 8.2% this month",
-    keyConcern: "Paused subscriptions increased by 2",
-  };
-
-  const funnel: FunnelStage[] = [
-    { stage: "Total leads received", count: scale(320) },
-    { stage: "Qualified parent leads", count: scale(245) },
-    { stage: "Trials booked (new leads only)", count: scale(120) },
-    { stage: "Trials conducted", count: scale(98) },
-    { stage: "Paid sign-ups", count: scale(85) },
-  ];
-
-  const leadToTrial = funnel[2].count / funnel[0].count * 100;
-  const leadToPaid = funnel[4].count / funnel[0].count * 100;
-  const trialToPaid = funnel[4].count / funnel[2].count * 100;
-
-  const sources: SourcePerformance[] = [
-    { source: "WhatsApp Ads – AU", leads: scale(120), trials: scale(45), paidSignUps: scale(32), conversion: 26.7 },
-    { source: "WhatsApp Ads – NZ", leads: scale(65), trials: scale(22), paidSignUps: scale(15), conversion: 23.1 },
-    { source: "Website", leads: scale(90), trials: scale(35), paidSignUps: scale(25), conversion: 27.8 },
-    { source: "Referrals", leads: scale(30), trials: scale(12), paidSignUps: scale(8), conversion: 26.7 },
-    { source: "Other", leads: scale(15), trials: scale(6), paidSignUps: scale(5), conversion: 33.3 },
-  ];
-
-  const revenue: RevenueQuality = {
-    arpu: +(119.28 * factor).toFixed(2),
-    packageMix: [
-      { name: "1x/week", value: 20 },
-      { name: "2x/week", value: 35 },
-      { name: "3x/week", value: 30 },
-      { name: "4x/week", value: 15 },
-    ],
-    prepaidPercent: 75,
-    planUpgrades: scale(7),
-    expectedMRR: scale(12000),
-  };
-
-  const efficiency: SalesEfficiency = {
-    avgFirstResponseMin: 3,
-    avgLeadToTrialDays: 2.3,
-    avgTrialToPaymentDays: 4.1,
-    avgFollowUpsPerConversion: 2.8,
-  };
-
-  const dropOffs: DropOffReason[] = [
-    { reason: "Price", percentage: 35 },
-    { reason: "Timing / holidays", percentage: 22 },
-    { reason: "No response", percentage: 18 },
-    { reason: "Comparison shopping", percentage: 12 },
-    { reason: "Academic mismatch", percentage: 8 },
-    { reason: "Other", percentage: 5 },
-  ];
-
-  const actions: ActionItem[] = [
-    { category: "ceo", text: "Approve discount budget for at‑risk leads (need by Friday)" },
-    { category: "marketing", text: "Increase WhatsApp AU ad spend by 20% (high conversion)" },
-    { category: "sales", text: "Implement follow‑up script for 'No response' leads after 3 days" },
-  ];
-
-  return { exec, funnel, leadToTrial, leadToPaid, trialToPaid, sources, revenue, efficiency, dropOffs, actions };
 };
 
-const CHART_COLORS = ["#4f46e5", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#ec4899"];
+type FunnelRow = {
+  stage: string;
+  count: number;
+};
 
-// ----------------------------------------------------------------------
-// Main Component
-// ----------------------------------------------------------------------
-export default function SalesDashboardPage() {
-  const [period, setPeriod] = useState<Period>("all");
-  const [data, setData] = useState(() => getMockData("all"));
-  const [loading, setLoading] = useState(false);
+type AreaRow = {
+  area: string;
+  students: number;
+  revenue: number;
+};
 
-  const fetchData = (selectedPeriod: Period) => {
-    setLoading(true);
-    setData(getMockData(selectedPeriod));
-    setLoading(false);
-  };
+type DropOffRow = {
+  reason: string;
+  approxPercent: number;
+};
 
-  useEffect(() => {
-    fetchData(period);
-  }, [period]);
+const currency = "AUD";
 
-  if (loading) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+const executive = {
+  owner: "Sales Manager",
+  frequency: "Monthly",
+  totalNewStudentsSigned: 85,
+  netActiveStudents: 1233,
+  totalRevenueCollected: 148500,
+  performanceVsLastMonth: "up" as Trend,
+  keyWin: "Upsell revenue grew 8.2% this month.",
+  keyConcern: "Paused subscriptions increased by 2 and need a faster win-back flow.",
+};
+
+const funnelRows: FunnelRow[] = [
+  { stage: "Total leads received", count: 320 },
+  { stage: "Qualified parent leads", count: 245 },
+  { stage: "Trials booked (new leads only)", count: 120 },
+  { stage: "Trials conducted", count: 98 },
+  { stage: "Paid sign-ups", count: 85 },
+];
+
+const sourceRows: SourceRow[] = [
+  { source: "WhatsApp Ads – AU", leads: 120, trials: 45, conducted: 38, paidSignUps: 32, conversion: 26.7 },
+  { source: "WhatsApp Ads – NZ", leads: 65, trials: 22, conducted: 18, paidSignUps: 15, conversion: 23.1 },
+  { source: "Website", leads: 90, trials: 35, conducted: 30, paidSignUps: 25, conversion: 27.8 },
+  { source: "Referrals", leads: 30, trials: 12, conducted: 10, paidSignUps: 8, conversion: 26.7 },
+  { source: "Other", leads: 15, trials: 6, conducted: 5, paidSignUps: 5, conversion: 33.3 },
+];
+
+const revenueQuality = {
+  arpu: 119.28,
+  packageMix: [
+    { name: "1x/week", value: 20 },
+    { name: "2x/week", value: 35 },
+    { name: "3x/week", value: 30 },
+    { name: "4x/week", value: 15 },
+  ],
+  paymentMix: [
+    { name: "Prepaid", value: 75 },
+    { name: "Partial", value: 25 },
+  ],
+  areaWise: [
+    { area: "AU", students: 138, revenue: 58200 },
+    { area: "NZ", students: 74, revenue: 31800 },
+    { area: "UK", students: 56, revenue: 24950 },
+    { area: "USA", students: 48, revenue: 21150 },
+    { area: "Other", students: 26, revenue: 12400 },
+  ] as AreaRow[],
+  planUpgrades: 7,
+  expectedMrrNextMonth: 12000,
+};
+
+const salesEfficiency = {
+  avgFirstResponseMinutes: 3,
+  avgLeadToTrialDays: 2.3,
+  avgTrialToPaymentDays: 4.1,
+  followUpsPerConvertedLead: 2.8,
+};
+
+const efficiencyTrend = [
+  { week: "W1", response: 5.2, leadToTrial: 3.4, trialToPayment: 5.0, followUps: 3.6 },
+  { week: "W2", response: 4.4, leadToTrial: 3.0, trialToPayment: 4.8, followUps: 3.2 },
+  { week: "W3", response: 3.7, leadToTrial: 2.6, trialToPayment: 4.5, followUps: 3.0 },
+  { week: "W4", response: 3.0, leadToTrial: 2.3, trialToPayment: 4.1, followUps: 2.8 },
+];
+
+const dropOffRows: DropOffRow[] = [
+  { reason: "Price", approxPercent: 35 },
+  { reason: "Timing / holidays", approxPercent: 22 },
+  { reason: "No response", approxPercent: 18 },
+  { reason: "Comparison shopping", approxPercent: 12 },
+  { reason: "Academic mismatch", approxPercent: 8 },
+  { reason: "Other", approxPercent: 5 },
+];
+
+const supportActions = {
+  ceo: "Approve discount budget for at-risk leads and faster fee exception approvals.",
+  marketing: "Increase high-quality AU/NZ WhatsApp lead targeting and improve landing-page copy.",
+  salesChange: "Tighter 15-minute first-response SLA and segmented follow-up scripts by market.",
+  how: ["One Google Sheet tab", "Market-wise rows"],
+};
+
+const monthlyRevenue = [
+  { month: "Jan", revenue: 112000, target: 120000, signups: 68 },
+  { month: "Feb", revenue: 121000, target: 123000, signups: 74 },
+  { month: "Mar", revenue: 118000, target: 125000, signups: 71 },
+  { month: "Apr", revenue: 136000, target: 128000, signups: 82 },
+  { month: "May", revenue: 142500, target: 135000, signups: 86 },
+  { month: "Jun", revenue: 148500, target: 140000, signups: 85 },
+];
+
+const actionImpact = [
+  { name: "CEO", urgency: 85, impact: 90 },
+  { name: "Marketing", urgency: 78, impact: 82 },
+  { name: "Sales", urgency: 92, impact: 88 },
+];
+
+const COLORS = {
+  blue: "#2563eb",
+  sky: "#0ea5e9",
+  green: "#10b981",
+  emerald: "#059669",
+  amber: "#f59e0b",
+  red: "#ef4444",
+  violet: "#8b5cf6",
+  cyan: "#06b6d4",
+  slate: "#64748b",
+};
+
+const CHART_COLORS = [COLORS.blue, COLORS.green, COLORS.amber, COLORS.red, COLORS.violet, COLORS.cyan];
+
+function money(value: number) {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: value % 1 ? 2 : 0,
+  }).format(value);
+}
+
+function percent(numerator: number, denominator: number) {
+  if (!denominator) return 0;
+  return Number(((numerator / denominator) * 100).toFixed(1));
+}
+
+function trendMeta(trend: Trend) {
+  if (trend === "up") {
+    return {
+      label: "Up vs last month",
+      icon: ArrowUpRight,
+      className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+    };
   }
+  if (trend === "down") {
+    return {
+      label: "Down vs last month",
+      icon: ArrowDownRight,
+      className: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
+    };
+  }
+  return {
+    label: "Flat vs last month",
+    icon: ArrowRight,
+    className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  };
+}
 
-  const { exec, funnel, leadToTrial, leadToPaid, trialToPaid, sources, revenue, efficiency, dropOffs, actions } = data;
-
+function SectionTitle({ code, title, subtitle }: { code: string; title: string; subtitle: string }) {
   return (
-    <div className="space-y-8 p-6">
-      {/* Header + Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Sales Dashboard</h1>
-          <p className="text-muted-foreground">
-            Lead funnel, source performance, revenue quality &amp; sales efficiency.
-          </p>
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-white dark:bg-blue-500">{code}</span>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-50">{title}</h2>
         </div>
-        <div className="flex items-center gap-3">
-          <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="weekly">This Week</SelectItem>
-              <SelectItem value="monthly">This Month</SelectItem>
-              <SelectItem value="yearly">This Year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={() => fetchData(period)} variant="outline" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>
       </div>
-
-      {/* ================================================================ */}
-      {/* A. EXECUTIVE SUMMARY CARDS (already existing) */}
-      {/* ================================================================ */}
-      <SectionTitle icon={Target} title="Executive Summary" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <MetricCard title="Total new students signed" value={exec.newSignUps} icon={UserPlus} />
-        <MetricCard title="Net active students" value={exec.netActive} icon={Users} />
-        <MetricCard title="Total revenue collected (AUD)" value={`$${exec.totalRevenue.toLocaleString()}`} icon={DollarSign} />
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-medium text-muted-foreground">Overall performance vs last month</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <TrendBadge direction={exec.revenueTrend} label="Revenue" />
-              <TrendBadge direction={exec.volumeTrend} label="Volume" />
-              <TrendBadge direction={exec.costTrend} label="Costs" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-medium text-muted-foreground">Key win</p>
-            <p className="mt-1 text-sm text-green-700 dark:text-green-400">✅ {exec.keyWin}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-medium text-muted-foreground">Key concern</p>
-            <p className="mt-1 text-sm text-red-700 dark:text-red-400">⚠️ {exec.keyConcern}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ================================================================ */}
-      {/* NEW: FUNNEL STAGES CARDS */}
-      {/* ================================================================ */}
-      <SectionTitle icon={BarChart3} title="Lead Funnel Stages" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {funnel.map((stage) => (
-          <MetricCard key={stage.stage} title={stage.stage} value={stage.count} icon={Users} />
-        ))}
-      </div>
-
-      {/* ================================================================ */}
-      {/* NEW: CONVERSION RATES CARDS */}
-      {/* ================================================================ */}
-      <SectionTitle icon={TrendingUp} title="Conversion Rates" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCard title="Lead → Trial %" value={`${leadToTrial.toFixed(1)}%`} icon={Target} />
-        <MetricCard title="Lead → Paid Conversion %" value={`${leadToPaid.toFixed(1)}%`} icon={Target} />
-        <MetricCard title="Trial → Paid Conversion %" value={`${trialToPaid.toFixed(1)}%`} icon={Target} />
-      </div>
-
-      {/* ================================================================ */}
-      {/* NEW: SOURCE-WISE PERFORMANCE CARDS */}
-      {/* ================================================================ */}
-      <SectionTitle icon={Megaphone} title="Source Performance" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {sources.map((src) => (
-          <Card key={src.source}>
-            <CardContent className="p-4">
-              <p className="text-sm font-semibold mb-3">{src.source}</p>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Leads:</span>
-                  <span className="font-medium">{src.leads}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Trials:</span>
-                  <span className="font-medium">{src.trials}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Paid Sign-ups:</span>
-                  <span className="font-medium">{src.paidSignUps}</span>
-                </div>
-                <div className="flex justify-between border-t pt-1 mt-1">
-                  <span className="text-muted-foreground">Conversion:</span>
-                  <span className="font-bold text-primary">{src.conversion}%</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* ================================================================ */}
-      {/* NEW: REVENUE QUALITY CARD */}
-      {/* ================================================================ */}
-      <SectionTitle icon={DollarSign} title="Revenue Quality" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCard title="Average revenue per student (ARPU)" value={`$${revenue.arpu}`} icon={DollarSign} />
-        <MetricCard title="Plan upgrades this month" value={revenue.planUpgrades} icon={TrendingUp} />
-        <MetricCard title="Expected MRR (joining next month)" value={`$${revenue.expectedMRR.toLocaleString()}`} icon={Activity} />
-      </div>
-
-      {/* ================================================================ */}
-      {/* NEW: SALES EFFICIENCY CARDS */}
-      {/* ================================================================ */}
-      <SectionTitle icon={Clock} title="Sales Efficiency" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Avg first response time" value={`${efficiency.avgFirstResponseMin} min`} icon={Phone} />
-        <MetricCard title="Avg days from lead → trial" value={`${efficiency.avgLeadToTrialDays} days`} icon={Target} />
-        <MetricCard title="Avg days from trial → payment" value={`${efficiency.avgTrialToPaymentDays} days`} icon={Target} />
-        <MetricCard title="Follow-ups per converted lead (avg)" value={efficiency.avgFollowUpsPerConversion} icon={RefreshCw} />
-      </div>
-
-      {/* ================================================================ */}
-      {/* NEW: DROP-OFF REASON CARDS */}
-      {/* ================================================================ */}
-      <SectionTitle icon={AlertTriangle} title="Drop‑off & Loss Reasons" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {dropOffs.map((item) => (
-          <MetricCard key={item.reason} title={item.reason} value={`${item.percentage}%`} icon={AlertTriangle} />
-        ))}
-      </div>
-
-      {/* ================================================================ */}
-      {/* CHARTS & DEEPER ANALYSIS (keep existing visualisations) */}
-      {/* ================================================================ */}
-      <SectionTitle icon={BarChart3} title="Funnel Visualisation" />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Funnel Stages (Chart)</CardTitle>
-          </CardHeader>
-          <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={funnel} layout="vertical" margin={{ top: 0, right: 20, left: 140, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis type="category" dataKey="stage" width={130} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]} barSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Conversion Rates (Chart)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ConversionRate label="Lead → Trial" value={leadToTrial} />
-            <ConversionRate label="Lead → Paid" value={leadToPaid} />
-            <ConversionRate label="Trial → Paid" value={trialToPaid} />
-          </CardContent>
-        </Card>
-      </div>
-
-      <SectionTitle icon={Megaphone} title="Source-wise Chart" />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Leads, Trials &amp; Paid Sign‑ups by Source</CardTitle>
-        </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sources} margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="source" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={60} />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="leads" name="Leads" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={24} />
-              <Bar dataKey="trials" name="Trials" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={24} />
-              <Bar dataKey="paidSignUps" name="Paid" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <SectionTitle icon={DollarSign} title="Revenue Quality Details" />
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Package Mix (%)</CardTitle>
-          </CardHeader>
-          <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={revenue.packageMix} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                  {revenue.packageMix.map((_, idx) => (
-                    <Cell key={`cell-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Prepaid vs Partial</CardTitle>
-          </CardHeader>
-          <CardContent className="h-64 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-primary">{revenue.prepaidPercent}%</div>
-              <div className="text-sm text-muted-foreground mt-2">Prepaid</div>
-              <div className="text-sm text-muted-foreground">{100 - revenue.prepaidPercent}% Partial</div>
-              <div className="w-full bg-muted rounded-full h-3 mt-4">
-                <div className="bg-primary h-3 rounded-full" style={{ width: `${revenue.prepaidPercent}%` }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <SectionTitle icon={AlertTriangle} title="Loss Reason Chart" />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Loss Reason Distribution</CardTitle>
-        </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={dropOffs} dataKey="percentage" nameKey="reason" cx="50%" cy="50%" outerRadius={100} label>
-                {dropOffs.map((_, idx) => (
-                  <Cell key={`cell-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: any) => `${value}%`} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <SectionTitle icon={ThumbsUp} title="Action Items / Support Needed" />
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          {actions.map((item, idx) => (
-            <div key={idx} className="flex items-start gap-3">
-              <span className="capitalize text-xs font-semibold px-2 py-1 rounded bg-muted">
-                {item.category}
-              </span>
-              <p className="text-sm">{item.text}</p>
-            </div>
-          ))}
-          <div className="text-xs text-muted-foreground mt-4">
-            ● One Google Sheet tab ● Market‑wise rows
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
 
-// ----------------------------------------------------------------------
-// Reusable Components
-// ----------------------------------------------------------------------
-function SectionTitle({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+function BaseCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className="flex items-center gap-2 border-l-4 border-indigo-600 pl-3">
-      <Icon className="h-5 w-5 text-indigo-600" />
-      <h2 className="text-lg font-semibold">{title}</h2>
-    </div>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  icon: Icon,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-5 flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">{title}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
-        </div>
-        <div className="rounded-full bg-muted/60 p-2.5">
-          <Icon className="h-5 w-5 text-indigo-500" />
-        </div>
-      </CardContent>
+    <Card className={`rounded-3xl border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950 ${className}`}>
+      {children}
     </Card>
   );
 }
 
-function ConversionRate({ label, value }: { label: string; value: number }) {
+function KpiCard({
+  title,
+  value,
+  helper,
+  icon: Icon,
+  tone = "blue",
+}: {
+  title: string;
+  value: string | number;
+  helper: string;
+  icon: ElementType;
+  tone?: "blue" | "green" | "red" | "amber" | "violet";
+}) {
+  const tones = {
+    blue: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
+    green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+    red: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
+    amber: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
+    violet: "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300",
+  };
+
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-sm">{label}</span>
-      <span className="font-semibold">{value.toFixed(1)}%</span>
-      <div className="w-24 bg-muted rounded-full h-2">
-        <div className="bg-primary h-2 rounded-full" style={{ width: `${Math.min(value, 100)}%` }} />
+    <BaseCard>
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
+            <p className="mt-3 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{value}</p>
+            <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{helper}</p>
+          </div>
+          <div className={`rounded-2xl p-3 ${tones[tone]}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </CardContent>
+    </BaseCard>
+  );
+}
+
+function MiniChartCard({
+  title,
+  value,
+  children,
+}: {
+  title: string;
+  value: string;
+  children: ReactNode;
+}) {
+  return (
+    <BaseCard>
+      <CardContent className="p-5">
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
+        <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{value}</p>
+        <div className="mt-3 h-20">{children}</div>
+      </CardContent>
+    </BaseCard>
+  );
+}
+
+function DataTable({ children }: { children: ReactNode }) {
+  return <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">{children}</div>;
+}
+
+function TableHeaderCell({ children }: { children: ReactNode }) {
+  return <th className="whitespace-nowrap bg-slate-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">{children}</th>;
+}
+
+function TableCell({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <td className={`whitespace-nowrap border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800 ${className}`}>{children}</td>;
+}
+
+function ProgressLine({ label, value, rightLabel }: { label: string; value: number; rightLabel: string }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-slate-700 dark:text-slate-300">{label}</span>
+        <span className="text-slate-500 dark:text-slate-400">{rightLabel}</span>
       </div>
+      <Progress value={value} className="h-2 bg-slate-200 dark:bg-slate-800" />
     </div>
   );
 }
 
-function TrendBadge({ direction, label }: { direction: "up" | "down" | "neutral"; label: string }) {
-  const icons = {
-    up: <ArrowUpRight className="h-3 w-3" />,
-    down: <ArrowDownRight className="h-3 w-3" />,
-    neutral: <Minus className="h-3 w-3" />,
-  };
-  const colors = {
-    up: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300",
-    down: "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300",
-    neutral: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400",
-  };
+export default function SalesDashboardPage() {
+  const leadToTrial = percent(funnelRows[2].count, funnelRows[0].count);
+  const leadToPaid = percent(funnelRows[4].count, funnelRows[0].count);
+  const trialToPaid = percent(funnelRows[4].count, funnelRows[3].count);
+
+  const totalSourceLeads = useMemo(() => sourceRows.reduce((sum, row) => sum + row.leads, 0), []);
+  const totalPaidSignups = useMemo(() => sourceRows.reduce((sum, row) => sum + row.paidSignUps, 0), []);
+  const trend = trendMeta(executive.performanceVsLastMonth);
+  const TrendIcon = trend.icon;
+
+  const funnelChartRows = funnelRows.map((row, index) => ({
+    ...row,
+    percentOfLead: percent(row.count, funnelRows[0].count),
+    fill: CHART_COLORS[index % CHART_COLORS.length],
+  }));
+
+  const funnelConversionRows = [
+    { metric: "Lead → Trial", value: leadToTrial },
+    { metric: "Lead → Paid", value: leadToPaid },
+    { metric: "Trial → Paid", value: trialToPaid },
+  ];
+
   return (
-    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${colors[direction]}`}>
-      {icons[direction]}
-      {label}
-    </span>
+    <div className="space-y-8 bg-white p-4 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:p-6 lg:p-8">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="rounded-full bg-blue-600 px-3 py-1 text-white hover:bg-blue-600 dark:bg-blue-500">2⃣ SALES</Badge>
+              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Owner: {executive.owner}</Badge>
+              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Frequency: ● {executive.frequency}</Badge>
+            </div>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Sales Dashboard</h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+              Monthly sales reporting tab with executive summary, funnel overview, source performance, revenue quality, efficiency, drop-offs, and support actions.
+            </p>
+          </div>
+          <div className={`inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${trend.className}`}>
+            <TrendIcon className="h-4 w-4" />
+            {trend.label}
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-5">
+        <SectionTitle code="A" title="Executive Summary" subtitle="5-line mandatory monthly summary plus visual health charts" />
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard title="Total new students signed" value={executive.totalNewStudentsSigned} helper="Monthly new paid sign-ups" icon={UserCheck} tone="blue" />
+          <KpiCard title="Net active students" value={executive.netActiveStudents.toLocaleString()} helper="After drop-offs" icon={Users} tone="green" />
+          <KpiCard title={`Total revenue collected (${currency})`} value={money(executive.totalRevenueCollected)} helper="Collected this month" icon={DollarSign} tone="violet" />
+          <KpiCard title="Overall performance" value="⬆ Up" helper="Compared with last month" icon={TrendingUp} tone="green" />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+          <BaseCard>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Executive Summary — 5 Lines Max</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 text-sm md:grid-cols-2">
+                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                  <span className="text-slate-500 dark:text-slate-400">● Total new students signed:</span>
+                  <strong className="ml-2 text-slate-950 dark:text-white">{executive.totalNewStudentsSigned}</strong>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                  <span className="text-slate-500 dark:text-slate-400">● Net active students:</span>
+                  <strong className="ml-2 text-slate-950 dark:text-white">{executive.netActiveStudents.toLocaleString()}</strong>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                  <span className="text-slate-500 dark:text-slate-400">● Revenue collected:</span>
+                  <strong className="ml-2 text-slate-950 dark:text-white">{money(executive.totalRevenueCollected)}</strong>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                  <span className="text-slate-500 dark:text-slate-400">● Performance:</span>
+                  <strong className="ml-2 text-emerald-600 dark:text-emerald-400">⬆ vs last month</strong>
+                </div>
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                  <span className="font-semibold text-emerald-700 dark:text-emerald-300">● Key win:</span>
+                  <p className="mt-1 text-emerald-900 dark:text-emerald-100">{executive.keyWin}</p>
+                </div>
+                <div className="rounded-2xl border border-red-100 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
+                  <span className="font-semibold text-red-700 dark:text-red-300">● Key concern:</span>
+                  <p className="mt-1 text-red-900 dark:text-red-100">{executive.keyConcern}</p>
+                </div>
+              </div>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Monthly Revenue Trend</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[285px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthlyRevenue} margin={{ top: 12, right: 8, left: -14, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="executiveRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={COLORS.blue} stopOpacity={0.38} />
+                      <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.03} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
+                  <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => `${Number(v) / 1000}k`} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => money(Number(value ?? 0))} />
+                  <Area type="monotone" dataKey="revenue" name="Revenue" stroke={COLORS.blue} strokeWidth={3} fill="url(#executiveRevenue)" />
+                  <Line type="monotone" dataKey="target" name="Target" stroke={COLORS.green} strokeWidth={2} dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+        </div>
+      </section>
+
+      <section className="space-y-5">
+        <SectionTitle code="B" title="Lead Funnel Overview" subtitle="Funnel count table, stage bars, conversion percentages, and visual funnel charts" />
+
+        <div className="grid gap-4 xl:grid-cols-[.85fr_1.15fr]">
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Funnel Stage Counts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable>
+                <table className="w-full text-left">
+                  <thead>
+                    <tr>
+                      <TableHeaderCell>Funnel Stage</TableHeaderCell>
+                      <TableHeaderCell>Count</TableHeaderCell>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {funnelRows.map((row) => (
+                      <tr key={row.stage}>
+                        <TableCell className="font-medium text-slate-800 dark:text-slate-200">{row.stage}</TableCell>
+                        <TableCell className="font-bold text-slate-950 dark:text-white">{row.count.toLocaleString()}</TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </DataTable>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <KpiCard title="Lead → Trial %" value={`${leadToTrial}%`} helper="Trials booked / total leads" icon={Target} tone="blue" />
+                <KpiCard title="Lead → Paid %" value={`${leadToPaid}%`} helper="Paid sign-ups / leads" icon={BadgeDollarSign} tone="green" />
+                <KpiCard title="Trial → Paid %" value={`${trialToPaid}%`} helper="Paid / trials conducted" icon={CheckCircle2} tone="violet" />
+              </div>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Funnel Progress Bars</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {funnelChartRows.map((row) => (
+                <ProgressLine key={row.stage} label={row.stage} value={row.percentOfLead} rightLabel={`${row.count.toLocaleString()} • ${row.percentOfLead}%`} />
+              ))}
+            </CardContent>
+          </BaseCard>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <BaseCard className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Funnel Stage Bar Chart</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[330px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={funnelChartRows} layout="vertical" margin={{ top: 8, right: 18, left: 150, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis type="category" dataKey="stage" width={145} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Bar dataKey="count" name="Count" radius={[0, 8, 8, 0]} barSize={25}>
+                    {funnelChartRows.map((entry) => (
+                      <Cell key={entry.stage} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Conversion Radial Chart</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[330px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart innerRadius="22%" outerRadius="92%" data={funnelConversionRows} startAngle={90} endAngle={-270}>
+                  <RadialBar dataKey="value" cornerRadius={10} background>
+                    {funnelConversionRows.map((entry, index) => (
+                      <Cell key={entry.metric} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </RadialBar>
+                  <Legend iconSize={9} layout="vertical" verticalAlign="middle" align="right" />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                </RadialBarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+        </div>
+      </section>
+
+      <section className="space-y-5">
+        <SectionTitle code="C" title="Source-wise Performance" subtitle="Market-wise lead source rows with table, grouped bar chart, and conversion pie" />
+
+        <BaseCard>
+          <CardHeader>
+            <CardTitle className="text-base">Source Performance Table</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable>
+              <table className="w-full text-left">
+                <thead>
+                  <tr>
+                    <TableHeaderCell>Source</TableHeaderCell>
+                    <TableHeaderCell>Leads</TableHeaderCell>
+                    <TableHeaderCell>Trials</TableHeaderCell>
+                    <TableHeaderCell>Conducted</TableHeaderCell>
+                    <TableHeaderCell>Paid Sign-ups</TableHeaderCell>
+                    <TableHeaderCell>Conversion %</TableHeaderCell>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sourceRows.map((row) => (
+                    <tr key={row.source}>
+                      <TableCell className="font-semibold text-slate-900 dark:text-white">{row.source}</TableCell>
+                      <TableCell>{row.leads}</TableCell>
+                      <TableCell>{row.trials}</TableCell>
+                      <TableCell>{row.conducted}</TableCell>
+                      <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">{row.paidSignUps}</TableCell>
+                      <TableCell>
+                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">{row.conversion}%</span>
+                      </TableCell>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTable>
+          </CardContent>
+        </BaseCard>
+
+        <div className="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Leads, Trials, Conducted & Paid by Source</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[360px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={sourceRows} margin={{ top: 10, right: 8, left: -10, bottom: 46 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis dataKey="source" axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" fontSize={11} />
+                  <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Legend />
+                  <Bar dataKey="leads" name="Leads" fill={COLORS.blue} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="trials" name="Trials" fill={COLORS.amber} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="conducted" name="Conducted" fill={COLORS.sky} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="paidSignUps" name="Paid" fill={COLORS.green} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Paid Sign-up Share</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[360px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={sourceRows} dataKey="paidSignUps" nameKey="source" innerRadius={60} outerRadius={105} paddingAngle={4}>
+                    {sourceRows.map((entry, index) => (
+                      <Cell key={entry.source} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Legend iconSize={9} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+        </div>
+      </section>
+
+      <section className="space-y-5">
+        <SectionTitle code="D" title="Revenue Quality" subtitle="ARPU, package mix, payments, area categorisation, upgrades, and expected MRR" />
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard title="Average revenue per student (ARPU)" value={money(revenueQuality.arpu)} helper="Average monthly student value" icon={WalletCards} tone="blue" />
+          <KpiCard title="Plan upgrades this month" value={revenueQuality.planUpgrades} helper="Students moved to higher plans" icon={TrendingUp} tone="green" />
+          <KpiCard title="Expected MRR from joining next month" value={money(revenueQuality.expectedMrrNextMonth)} helper="Pipeline-ready recurring revenue" icon={BadgeDollarSign} tone="violet" />
+          <KpiCard title="Prepaid vs partial payments" value={`${revenueQuality.paymentMix[0].value}% / ${revenueQuality.paymentMix[1].value}%`} helper="Prepaid / partial split" icon={PieChartLucide} tone="amber" />
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-3">
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Package Mix (%)</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[330px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={revenueQuality.packageMix} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={105} paddingAngle={5} label={({ name, value }) => `${name}: ${value}%`}>
+                    {revenueQuality.packageMix.map((entry, index) => (
+                      <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Prepaid vs Partial Payments (%)</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[330px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueQuality.paymentMix} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                  <Bar dataKey="value" name="Payment %" radius={[10, 10, 0, 0]}>
+                    {revenueQuality.paymentMix.map((entry, index) => (
+                      <Cell key={entry.name} fill={index === 0 ? COLORS.green : COLORS.amber} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Expected MRR Trend</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[330px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyRevenue} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `${Number(v) / 1000}k`} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => money(Number(value ?? 0))} />
+                  <Line type="monotone" dataKey="revenue" name="Revenue" stroke={COLORS.violet} strokeWidth={3} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="target" name="Target" stroke={COLORS.green} strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+        </div>
+
+        <BaseCard>
+          <CardHeader>
+            <CardTitle className="text-base">Area Wise Categorisation</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-5 xl:grid-cols-[.8fr_1.2fr]">
+            <DataTable>
+              <table className="w-full text-left">
+                <thead>
+                  <tr>
+                    <TableHeaderCell>Area</TableHeaderCell>
+                    <TableHeaderCell>Students</TableHeaderCell>
+                    <TableHeaderCell>Revenue</TableHeaderCell>
+                  </tr>
+                </thead>
+                <tbody>
+                  {revenueQuality.areaWise.map((row) => (
+                    <tr key={row.area}>
+                      <TableCell className="font-semibold text-slate-900 dark:text-white">{row.area}</TableCell>
+                      <TableCell>{row.students}</TableCell>
+                      <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">{money(row.revenue)}</TableCell>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTable>
+
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueQuality.areaWise} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis dataKey="area" axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tickFormatter={(v) => `${Number(v) / 1000}k`} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="students" name="Students" fill={COLORS.blue} radius={[8, 8, 0, 0]} />
+                  <Bar yAxisId="right" dataKey="revenue" name="Revenue" fill={COLORS.green} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </BaseCard>
+      </section>
+
+      <section className="space-y-5">
+        <SectionTitle code="E" title="Sales Efficiency" subtitle="Speed, conversion timing, follow-ups, and efficiency trend analysis" />
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard title="Avg first response time to new lead" value={`${salesEfficiency.avgFirstResponseMinutes} min`} helper="Target: under 15 minutes" icon={Clock3} tone="green" />
+          <KpiCard title="Avg days from lead → trial" value={`${salesEfficiency.avgLeadToTrialDays} days`} helper="Lead booking speed" icon={Target} tone="blue" />
+          <KpiCard title="Avg days from trial → payment" value={`${salesEfficiency.avgTrialToPaymentDays} days`} helper="Payment conversion time" icon={BadgeDollarSign} tone="violet" />
+          <KpiCard title="Follow-ups per converted lead" value={salesEfficiency.followUpsPerConvertedLead} helper="Average follow-up count" icon={MessageCircle} tone="amber" />
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Weekly Efficiency Trend</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={efficiencyTrend} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis dataKey="week" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Legend />
+                  <Line type="monotone" dataKey="response" name="First Response (min)" stroke={COLORS.green} strokeWidth={3} />
+                  <Line type="monotone" dataKey="leadToTrial" name="Lead → Trial (days)" stroke={COLORS.blue} strokeWidth={3} />
+                  <Line type="monotone" dataKey="trialToPayment" name="Trial → Payment (days)" stroke={COLORS.violet} strokeWidth={3} />
+                  <Line type="monotone" dataKey="followUps" name="Follow-ups" stroke={COLORS.amber} strokeWidth={3} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Efficiency Radar</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={[
+                  { metric: "Response", score: 92 },
+                  { metric: "Lead→Trial", score: 78 },
+                  { metric: "Trial→Pay", score: 72 },
+                  { metric: "Follow-up", score: 84 },
+                  { metric: "Close Rate", score: 88 },
+                ]}>
+                  <PolarGrid stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
+                  <Radar name="Efficiency" dataKey="score" stroke={COLORS.blue} fill={COLORS.blue} fillOpacity={0.25} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+        </div>
+      </section>
+
+      <section className="space-y-5">
+        <SectionTitle code="F" title="Drop-offs & Loss Reasons" subtitle="Loss reason table, percentage bars, and distribution pie" />
+
+        <div className="grid gap-4 xl:grid-cols-[.95fr_1.05fr]">
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Loss Reasons Table</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable>
+                <table className="w-full text-left">
+                  <thead>
+                    <tr>
+                      <TableHeaderCell>Reason</TableHeaderCell>
+                      <TableHeaderCell>Approx %</TableHeaderCell>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dropOffRows.map((row) => (
+                      <tr key={row.reason}>
+                        <TableCell className="font-semibold text-slate-900 dark:text-white">{row.reason}</TableCell>
+                        <TableCell className="font-bold text-red-600 dark:text-red-400">{row.approxPercent}%</TableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </DataTable>
+
+              <div className="mt-5 space-y-4">
+                {dropOffRows.map((row) => (
+                  <ProgressLine key={row.reason} label={row.reason} value={row.approxPercent} rightLabel={`${row.approxPercent}%`} />
+                ))}
+              </div>
+            </CardContent>
+          </BaseCard>
+
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <BaseCard>
+              <CardHeader>
+                <CardTitle className="text-base">Loss Distribution Pie</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[330px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={dropOffRows} dataKey="approxPercent" nameKey="reason" innerRadius={55} outerRadius={95} paddingAngle={4} label>
+                      {dropOffRows.map((entry, index) => (
+                        <Cell key={entry.reason} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                    <Legend iconSize={9} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </BaseCard>
+
+            <BaseCard>
+              <CardHeader>
+                <CardTitle className="text-base">Loss Reason Bar Chart</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[330px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dropOffRows} layout="vertical" margin={{ top: 8, right: 16, left: 116, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                    <XAxis type="number" axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                    <YAxis type="category" dataKey="reason" width={112} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                    <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                    <Bar dataKey="approxPercent" name="Approx %" radius={[0, 8, 8, 0]}>
+                      {dropOffRows.map((entry, index) => (
+                        <Cell key={entry.reason} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </BaseCard>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-5">
+        <SectionTitle code="G" title="Action Items / Support Needed" subtitle="CEO, marketing, sales changes, and operating format shown inline" />
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <BaseCard>
+            <CardContent className="p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-2xl bg-blue-50 p-3 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-950 dark:text-white">What sales needs from CEO</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Approval and commercial support</p>
+                </div>
+              </div>
+              <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">{supportActions.ceo}</p>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardContent className="p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                  <Globe2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-950 dark:text-white">What sales needs from marketing</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Lead quality and campaign support</p>
+                </div>
+              </div>
+              <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">{supportActions.marketing}</p>
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardContent className="p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-2xl bg-violet-50 p-3 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
+                  <Layers3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-950 dark:text-white">What sales will change next month</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Process improvements</p>
+                </div>
+              </div>
+              <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">{supportActions.salesChange}</p>
+            </CardContent>
+          </BaseCard>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[.8fr_1.2fr]">
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">How</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {supportActions.how.map((item) => (
+                <div key={item} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{item}</span>
+                </div>
+              ))}
+            </CardContent>
+          </BaseCard>
+
+          <BaseCard>
+            <CardHeader>
+              <CardTitle className="text-base">Action Priority Chart</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[310px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={actionImpact} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Legend />
+                  <Bar dataKey="urgency" name="Urgency" fill={COLORS.red} radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="impact" name="Impact" fill={COLORS.blue} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </BaseCard>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MiniChartCard title="Total leads received" value={totalSourceLeads.toLocaleString()}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyRevenue} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                <Area type="monotone" dataKey="signups" stroke={COLORS.blue} fill={COLORS.blue} fillOpacity={0.15} strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </MiniChartCard>
+          <MiniChartCard title="Paid sign-ups" value={totalPaidSignups.toLocaleString()}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={monthlyRevenue} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                <Line type="monotone" dataKey="signups" stroke={COLORS.green} strokeWidth={3} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </MiniChartCard>
+          <MiniChartCard title="Lead → Paid" value={`${leadToPaid}%`}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={funnelConversionRows} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                <Bar dataKey="value" fill={COLORS.violet} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </MiniChartCard>
+          <MiniChartCard title="Revenue collected" value={money(executive.totalRevenueCollected)}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyRevenue} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                <Area type="monotone" dataKey="revenue" stroke={COLORS.amber} fill={COLORS.amber} fillOpacity={0.15} strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </MiniChartCard>
+        </div>
+      </section>
+    </div>
   );
 }

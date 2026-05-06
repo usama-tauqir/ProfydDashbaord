@@ -1,3 +1,5 @@
+import { Analytics } from '@vercel/analytics/next'
+import { lightFormatters } from 'date-fns'
 import {
   LayoutDashboard,
   Users,
@@ -17,8 +19,13 @@ import {
   DollarSign,
   User,
   Bell,
-  AlertCircle
+  AlertCircle,
+  Icon,
+  BarChart2,
+  LineChart,
+  BarChartBig
 } from 'lucide-react'
+import { title } from 'process'
 
 export const DEPARTMENT_SIDEBAR_ITEMS = {
   training: [
@@ -201,6 +208,56 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       href: '/dashboard/ceo',
       icon: LayoutDashboard,
     },
+    {
+      title: 'Admin Dashboard',
+      href: '/dashboard/admin',
+      icon: User,
+    },
+
+    {
+      title: 'Sales Dashboard',
+      href: '/dashboard/sales',
+      icon: TrendingUp,
+    },
+
+    {
+      title: 'Support Dashboard',
+      href: '/dashboard/support',
+      icon: MessageSquare,
+    },
+
+    {
+      title: 'Training Dashboard',
+      href: '/dashboard/training',
+      icon: BookOpen,
+    },
+
+    {
+      title: 'Financial Dashboard',
+      href: '/dashboard/finance',
+      icon: DollarSign,
+    },
+
+    {
+      title: 'HR Dashboard',
+      href: '/dashboard/hr',
+      icon: Users,
+    },
+
+    {
+      title: 'Marketing Dashboard',
+      href: '/dashboard/marketing',
+      icon: BarChart,
+    },
+
+    {
+      title: 'Recruitment Dashboard',
+      href: '/dashboard/recruitment',
+      icon: UserPlus,
+    },
+
+
+
   ],
   finance: [
     {
@@ -220,8 +277,33 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
     {
       title: 'Dashboard',
       href: '/dashboard/marketing',
-      icon: LayoutDashboard,
+      Icon: LayoutDashboard,
     },
+
+    {
+      title: 'Offers & Discount',
+      href: '/dashboard/marketing/OffersDiscout',
+      icon: BarChartBig,
+    },
+
+    {
+      title: 'Marketing Spend',
+      href: '/dashboard/marketing/spend',
+      icon: BarChart,
+    },
+
+    {
+      title: 'Marketing Leads',
+      href: '/dashboard/marketing/leads',
+      icon: LineChart,
+    },
+    {
+      title: 'Funnel Performance',
+      href: '/dashboard/marketing/Funnel_Performance',
+      icon: BarChartBig,
+    },
+    
+
   ],
   recruitment: [
     {
@@ -247,6 +329,28 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       
       icon: AlertCircle,
     },
+
+    {
+      title: 'Lead Funnel',
+      href: '/dashboard/sales/lead-funnel',
+      
+      icon: BarChart,
+    },
+
+    {
+      title: 'Source Performance',
+      href: '/dashboard/sales/source-performance',
+      
+      icon: TrendingUp,
+    },
+
+    {
+      title: 'Agent Performance',
+      href: '/dashboard/sales/agent-performance',
+      
+      icon: TrendingUp,
+    },
+
   ],
   teachers: [
   {
