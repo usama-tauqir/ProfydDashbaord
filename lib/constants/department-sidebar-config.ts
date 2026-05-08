@@ -1,5 +1,3 @@
-import { Analytics } from '@vercel/analytics/next'
-import { lightFormatters } from 'date-fns'
 import {
   LayoutDashboard,
   Users,
@@ -9,7 +7,6 @@ import {
   MessageSquare,
   Calendar,
   TrendingUp,
-  Award,
   FileText,
   Settings,
   UserPlus,
@@ -20,10 +17,8 @@ import {
   User,
   Bell,
   AlertCircle,
-  Icon,
-  BarChart2,
   LineChart,
-  BarChartBig
+  BarChartBig,
 } from 'lucide-react'
 import { title } from 'process'
 
@@ -187,8 +182,7 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
     },
 
   ],
-  
-  // Add empty arrays for other departments (to be filled later)
+
   admin: [
     {
       title: 'Dashboard',
@@ -201,6 +195,29 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       icon: CheckSquare,
     },
 
+    {
+      title: 'Office Operations',
+      href: '/dashboard/admin/office_operations',
+      icon: Settings,
+    },
+
+    {
+      title: 'Finance Facilities',
+      href: '/dashboard/admin/finance_facilities',
+      icon: DollarSign,
+    },
+
+    {
+      title: 'staff Events & Vendors',
+      href: '/dashboard/admin/staff_events_vendors',
+      icon: Users,
+    },
+
+    {
+      title: 'Assets & Compliance Records',
+      href: '/dashboard/admin/assets_compliance_records',
+      icon: Shield,
+    }
   ],
   ceo: [
     {
@@ -267,17 +284,52 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
     },
   ],
   hr: [
-    {
-      title: 'Dashboard',
-      href: '/dashboard/hr',
-      icon: LayoutDashboard,
-    },
-  ],
+  {
+    title: 'Dashboard',
+    href: '/dashboard/hr',
+    icon: LayoutDashboard,
+  },
+  {
+    title: 'Headcount',
+    href: '/dashboard/hr/headcount',
+    icon: Users,
+  },
+  {
+    title: 'Payroll',
+    href: '/dashboard/hr/payroll',
+    icon: DollarSign,
+  },
+  {
+    title: 'Payroll Ratios',
+    href: '/dashboard/hr/payroll-ratios',
+    icon: BarChart,
+  },
+  {
+    title: 'Attendance',
+    href: '/dashboard/hr/attendance',
+    icon: Calendar,
+  },
+  {
+    title: 'Attrition & Retention',
+    href: '/dashboard/hr/attrition-retention',
+    icon: TrendingUp,
+  },
+  {
+    title: 'Contract Compliance',
+    href: '/dashboard/hr/contract-compliance',
+    icon: Shield,
+  },
+  {
+    title: 'Training & Development',
+    href: '/dashboard/hr/training-development',
+    icon: BookOpen,
+  },
+],
   marketing: [
     {
       title: 'Dashboard',
       href: '/dashboard/marketing',
-      Icon: LayoutDashboard,
+      icon: LayoutDashboard,
     },
 
     {
@@ -314,8 +366,27 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
     {
       title: 'Positions',
       href: '/dashboard/positions',
-      icon: LayoutDashboard,
+      icon: UserPlus,
     },
+
+     {
+      title: 'Hiring Demand',
+      href: '/dashboard/recruitment/hiring_demand',
+      icon: Users,
+    },
+
+    {
+      title: 'Candidate Funnel',
+      href: '/dashboard/recruitment/candidate_funnel',
+      icon: User,
+    },
+
+    {
+      title: 'Source Performance',
+      href: '/dashboard/recruitment/performance',
+      icon: BarChart,
+    }
+
   ],
   sales: [
     {

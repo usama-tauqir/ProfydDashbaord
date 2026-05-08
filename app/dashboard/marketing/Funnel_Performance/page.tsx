@@ -15,16 +15,21 @@ import {
   AlertCircle,
   ArrowDownRight,
   ArrowUpRight,
+  Award,
   BarChart3,
   Calendar,
   CheckCircle2,
+  ClipboardCheck,
+  DollarSign,
   Edit3,
   Filter,
+  Lightbulb,
   Loader2,
   Minus,
   Plus,
   RefreshCw,
   Search,
+  ShieldCheck,
   Target,
   Trash2,
   TrendingUp,
@@ -73,6 +78,19 @@ type FunnelPerformanceRecord = {
   updated_at: string | null;
 };
 
+type AdSpendRecord = {
+  id?: string;
+  month: string;
+  market: Market;
+  ad_spend?: number | string | null;
+  spend?: number | string | null;
+  spend_amount?: number | string | null;
+  total_spend?: number | string | null;
+  amount?: number | string | null;
+  created_at?: string;
+  updated_at?: string | null;
+};
+
 type FunnelForm = {
   month: string;
   market: Market;
@@ -110,6 +128,17 @@ function toCount(value: number | string | null | undefined) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
+function getAdSpendValue(record: AdSpendRecord) {
+  return toCount(
+    record.ad_spend ??
+      record.spend ??
+      record.spend_amount ??
+      record.total_spend ??
+      record.amount ??
+      0
+  );
+}
+
 function toChartNumber(value: unknown) {
   if (typeof value === "number") return value;
   if (typeof value === "string") return Number(value) || 0;
@@ -119,6 +148,14 @@ function toChartNumber(value: unknown) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value || 0);
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -140,6 +177,11 @@ function percentage(value: number) {
 function plainPercentage(value: number) {
   if (!Number.isFinite(value)) return "0.0%";
   return `${value.toFixed(1)}%`;
+}
+
+function trendDirection(value: number): "up" | "down" | "neutral" {
+  if (!Number.isFinite(value) || value === 0) return "neutral";
+  return value > 0 ? "up" : "down";
 }
 
 function inputClassName(extra = "") {
@@ -250,6 +292,7 @@ function MetricCard({
 export default function MarketingFunnelPerformancePage() {
   const [funnelRecords, setFunnelRecords] = useState<FunnelPerformanceRecord[]>([]);
   const [leadRecords, setLeadRecords] = useState<LeadGenerationRecord[]>([]);
+  const [adSpendRecords, setAdSpendRecords] = useState<AdSpendRecord[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -258,14 +301,16 @@ export default function MarketingFunnelPerformancePage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [adSpendWarning, setAdSpendWarning] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState("Just now");
 
   const fetchRecords = async () => {
     try {
       setLoading(true);
       setMessage(null);
+      setAdSpendWarning(null);
 
-      const [funnelResponse, leadsResponse] = await Promise.all([
+      const [funnelResponse, leadsResponse, adSpendResponse] = await Promise.all([
         supabase
           .from("marketing_funnel_records")
           .select("*")
@@ -277,10 +322,25 @@ export default function MarketingFunnelPerformancePage() {
           .select("*")
           .order("month", { ascending: false })
           .order("created_at", { ascending: false }),
+
+        supabase
+          .from("marketing_ad_spend_records")
+          .select("*")
+          .order("month", { ascending: false })
+          .order("created_at", { ascending: false }),
       ]);
 
       if (funnelResponse.error) throw new Error(funnelResponse.error.message);
       if (leadsResponse.error) throw new Error(leadsResponse.error.message);
+
+      if (adSpendResponse.error) {
+        setAdSpendRecords([]);
+        setAdSpendWarning(
+          "Ad spend data could not be loaded. Check that your Supabase table is named marketing_ad_spend_records and has month, market and spend/ad_spend columns."
+        );
+      } else {
+        setAdSpendRecords((adSpendResponse.data || []) as AdSpendRecord[]);
+      }
 
       setFunnelRecords((funnelResponse.data || []) as FunnelPerformanceRecord[]);
       setLeadRecords((leadsResponse.data || []) as LeadGenerationRecord[]);
@@ -312,9 +372,19 @@ export default function MarketingFunnelPerformancePage() {
     [leadRecords, selectedMonth]
   );
 
+  const selectedAdSpendRecords = useMemo(
+    () => adSpendRecords.filter((record) => record.month === selectedMonth),
+    [adSpendRecords, selectedMonth]
+  );
+
   const previousFunnelRecords = useMemo(
     () => funnelRecords.filter((record) => record.month === getPreviousMonth(selectedMonth)),
     [funnelRecords, selectedMonth]
+  );
+
+  const previousAdSpendRecords = useMemo(
+    () => adSpendRecords.filter((record) => record.month === getPreviousMonth(selectedMonth)),
+    [adSpendRecords, selectedMonth]
   );
 
   const visibleRecords = useMemo(() => {
@@ -336,11 +406,24 @@ export default function MarketingFunnelPerformancePage() {
     return MARKETS.map((market) => {
       const marketFunnelRecords = selectedFunnelRecords.filter((record) => record.market === market);
       const marketLeadRecords = selectedLeadRecords.filter((record) => record.market === market);
+      const marketAdSpendRecords = selectedAdSpendRecords.filter((record) => record.market === market);
+      const previousMarketFunnelRecords = previousFunnelRecords.filter((record) => record.market === market);
+      const previousMarketAdSpendRecords = previousAdSpendRecords.filter((record) => record.market === market);
 
       const leadsGenerated = marketLeadRecords.reduce((sum, record) => sum + toCount(record.leads_count), 0);
       const trialsBooked = marketFunnelRecords.reduce((sum, record) => sum + toCount(record.trials_booked), 0);
       const trialsAttended = marketFunnelRecords.reduce((sum, record) => sum + toCount(record.trials_attended), 0);
       const paidConversions = marketFunnelRecords.reduce((sum, record) => sum + toCount(record.paid_conversions), 0);
+      const adSpend = marketAdSpendRecords.reduce((sum, record) => sum + getAdSpendValue(record), 0);
+
+      const previousPaidConversions = previousMarketFunnelRecords.reduce(
+        (sum, record) => sum + toCount(record.paid_conversions),
+        0
+      );
+      const previousAdSpend = previousMarketAdSpendRecords.reduce(
+        (sum, record) => sum + getAdSpendValue(record),
+        0
+      );
 
       return {
         market,
@@ -348,13 +431,33 @@ export default function MarketingFunnelPerformancePage() {
         trialsBooked,
         trialsAttended,
         paidConversions,
+        adSpend,
+        previousPaidConversions,
+        previousAdSpend,
         records: marketFunnelRecords.length,
         leadToTrialRate: leadsGenerated ? (trialsBooked / leadsGenerated) * 100 : 0,
         attendanceRate: trialsBooked ? (trialsAttended / trialsBooked) * 100 : 0,
         trialToPaidRate: trialsAttended ? (paidConversions / trialsAttended) * 100 : 0,
+        cac: paidConversions ? adSpend / paidConversions : 0,
+        paidConversionsMoM: previousPaidConversions
+          ? ((paidConversions - previousPaidConversions) / previousPaidConversions) * 100
+          : paidConversions > 0
+            ? 100
+            : 0,
+        adSpendMoM: previousAdSpend
+          ? ((adSpend - previousAdSpend) / previousAdSpend) * 100
+          : adSpend > 0
+            ? 100
+            : 0,
       };
     });
-  }, [selectedFunnelRecords, selectedLeadRecords]);
+  }, [
+    selectedFunnelRecords,
+    selectedLeadRecords,
+    selectedAdSpendRecords,
+    previousFunnelRecords,
+    previousAdSpendRecords,
+  ]);
 
   const totals = marketSummary.reduce(
     (acc, item) => {
@@ -362,6 +465,7 @@ export default function MarketingFunnelPerformancePage() {
       acc.trialsBooked += item.trialsBooked;
       acc.trialsAttended += item.trialsAttended;
       acc.paidConversions += item.paidConversions;
+      acc.adSpend += item.adSpend;
       return acc;
     },
     {
@@ -369,6 +473,7 @@ export default function MarketingFunnelPerformancePage() {
       trialsBooked: 0,
       trialsAttended: 0,
       paidConversions: 0,
+      adSpend: 0,
     }
   );
 
@@ -377,14 +482,97 @@ export default function MarketingFunnelPerformancePage() {
     0
   );
 
+  const previousTotalAdSpend = previousAdSpendRecords.reduce(
+    (sum, record) => sum + getAdSpendValue(record),
+    0
+  );
+
   const paidConversionsMoM = previousPaidConversions
     ? ((totals.paidConversions - previousPaidConversions) / previousPaidConversions) * 100
-    : 0;
+    : totals.paidConversions > 0
+      ? 100
+      : 0;
 
-  const topMarket = [...marketSummary].sort((a, b) => b.paidConversions - a.paidConversions)[0];
+  const adSpendMoM = previousTotalAdSpend
+    ? ((totals.adSpend - previousTotalAdSpend) / previousTotalAdSpend) * 100
+    : totals.adSpend > 0
+      ? 100
+      : 0;
+
+  const blendedCAC = totals.paidConversions ? totals.adSpend / totals.paidConversions : 0;
+
+  const activeMarketSummary = marketSummary.filter(
+    (item) =>
+      item.leadsGenerated ||
+      item.trialsBooked ||
+      item.trialsAttended ||
+      item.paidConversions ||
+      item.adSpend
+  );
+
+  const topMarket = [...activeMarketSummary].sort((a, b) => {
+    if (b.paidConversions !== a.paidConversions) return b.paidConversions - a.paidConversions;
+    if (b.trialToPaidRate !== a.trialToPaidRate) return b.trialToPaidRate - a.trialToPaidRate;
+    return a.cac - b.cac;
+  })[0];
+
+  const worstMarket = [...activeMarketSummary].sort((a, b) => {
+    if (a.paidConversions !== b.paidConversions) return a.paidConversions - b.paidConversions;
+    if (a.trialToPaidRate !== b.trialToPaidRate) return a.trialToPaidRate - b.trialToPaidRate;
+    return b.cac - a.cac;
+  })[0];
+
   const bestLeadToTrialMarket = [...marketSummary]
     .filter((item) => item.leadsGenerated > 0)
     .sort((a, b) => b.leadToTrialRate - a.leadToTrialRate)[0];
+
+  const bestMarketReason = topMarket
+    ? `${formatNumber(topMarket.paidConversions)} paid students, ${plainPercentage(
+        topMarket.trialToPaidRate
+      )} trial → paid rate${
+        topMarket.adSpend ? ` and ${formatCurrency(topMarket.cac)} CAC` : ""
+      }.`
+    : "No market activity yet for this month.";
+
+  const worstMarketReason = worstMarket
+    ? worstMarket.paidConversions === 0
+      ? `No paid students yet from ${formatNumber(worstMarket.leadsGenerated)} leads and ${formatNumber(
+          worstMarket.trialsAttended
+        )} attended trials.`
+      : `${formatNumber(worstMarket.paidConversions)} paid students, ${plainPercentage(
+          worstMarket.trialToPaidRate
+        )} trial → paid rate${
+          worstMarket.adSpend ? ` and ${formatCurrency(worstMarket.cac)} CAC` : ""
+        }.`
+    : "No market activity yet for this month.";
+
+  function getImprovementPlan(item: (typeof marketSummary)[number]) {
+    if (!item.leadsGenerated && !item.trialsBooked && !item.trialsAttended && !item.paidConversions) {
+      return "Start tracking lead volume and trial activity so next month has a baseline.";
+    }
+
+    if (item.leadsGenerated > 0 && item.leadToTrialRate < 20) {
+      return "Improve lead qualification and booking follow-up to increase Lead → Trial rate.";
+    }
+
+    if (item.trialsBooked > 0 && item.attendanceRate < 60) {
+      return "Reduce no-shows with stronger reminders, WhatsApp follow-ups and clearer trial expectations.";
+    }
+
+    if (item.trialsAttended > 0 && item.trialToPaidRate < 25) {
+      return "Improve sales closing after attended trials with faster follow-up and stronger offers.";
+    }
+
+    if (item.cac > 0 && blendedCAC > 0 && item.cac > blendedCAC * 1.2) {
+      return "Reduce CAC by pausing weaker campaigns and shifting spend to better converting creatives.";
+    }
+
+    if (item.paidConversions > 0) {
+      return "Scale the current winning campaigns while monitoring CAC and conversion quality.";
+    }
+
+    return "Review campaign quality, sales follow-up and trial attendance before increasing spend.";
+  }
 
   function setFormValue<K extends keyof FunnelForm>(key: K, value: FunnelForm[K]) {
     setForm((previous) => ({ ...previous, [key]: value }));
@@ -568,7 +756,7 @@ export default function MarketingFunnelPerformancePage() {
         </Card>
       )}
 
-      <SectionTitle icon={Zap} title="Funnel Summary" />
+      <SectionTitle icon={Zap} title="3. Funnel Performance (Market-wise)" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <MetricCard
@@ -596,7 +784,7 @@ export default function MarketingFunnelPerformancePage() {
           value={formatNumber(totals.paidConversions)}
           icon={TrendingUp}
           subtitle={`${plainPercentage(totals.trialsAttended ? (totals.paidConversions / totals.trialsAttended) * 100 : 0)} Trial → Paid`}
-          trend={<TrendBadge direction={paidConversionsMoM >= 0 ? "up" : "down"} label={`${percentage(paidConversionsMoM)} MoM`} />}
+          trend={<TrendBadge direction={trendDirection(paidConversionsMoM)} label={`${percentage(paidConversionsMoM)} MoM`} />}
         />
         <MetricCard
           title="Top market"
@@ -631,7 +819,7 @@ export default function MarketingFunnelPerformancePage() {
         />
         <MetricCard
           title="Active markets"
-          value={marketSummary.filter((item) => item.leadsGenerated || item.trialsBooked || item.paidConversions).length}
+          value={activeMarketSummary.length}
           icon={Filter}
           subtitle="Markets with funnel activity"
           variant="outline"
@@ -950,6 +1138,211 @@ export default function MarketingFunnelPerformancePage() {
           </MetricCard>
         ))}
       </div>
+
+      <SectionTitle icon={Award} title="6. Performance Summary (Short)" />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <MetricCard
+          title="Best performing market"
+          value={topMarket?.market || "—"}
+          icon={Award}
+          subtitle={bestMarketReason}
+          trend={<TrendBadge direction="up" label="Best performer" />}
+          highlight
+        />
+
+        <MetricCard
+          title="Worst performing market"
+          value={worstMarket?.market || "—"}
+          icon={AlertCircle}
+          subtitle={worstMarketReason}
+          trend={<TrendBadge direction="down" label="Needs improvement" />}
+          variant="warning"
+        />
+
+        <MetricCard
+          title="Main improvement focus"
+          value={worstMarket?.market || "—"}
+          icon={Lightbulb}
+          subtitle={worstMarket ? getImprovementPlan(worstMarket) : "Add market data to generate improvement focus."}
+          variant="outline"
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">One improvement planned for next month per market</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            These recommendations are automatically generated from each market’s weakest funnel stage.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {marketSummary.map((item) => (
+              <div key={item.market} className="rounded-lg border border-border bg-muted/20 p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="font-semibold">{item.market}</p>
+                  <TrendBadge
+                    direction={item.paidConversions > 0 ? "up" : "neutral"}
+                    label={`${formatNumber(item.paidConversions)} paid`}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">{getImprovementPlan(item)}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <SectionTitle icon={ClipboardCheck} title="7. Required Output (Non-Negotiable)" />
+
+      {adSpendWarning && (
+        <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
+          <CardContent className="flex items-start gap-3 py-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600" />
+            <p className="text-sm text-amber-800 dark:text-amber-300">{adSpendWarning}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Total ad spend"
+          value={formatCurrency(totals.adSpend)}
+          icon={DollarSign}
+          subtitle={`${getPreviousMonth(selectedMonth)}: ${formatCurrency(previousTotalAdSpend)}`}
+          trend={<TrendBadge direction={trendDirection(adSpendMoM)} label={`${percentage(adSpendMoM)} MoM`} />}
+          highlight
+        />
+
+        <MetricCard
+          title="Total paid students acquired"
+          value={formatNumber(totals.paidConversions)}
+          icon={Users}
+          subtitle={`${getPreviousMonth(selectedMonth)}: ${formatNumber(previousPaidConversions)}`}
+          trend={<TrendBadge direction={trendDirection(paidConversionsMoM)} label={`${percentage(paidConversionsMoM)} MoM`} />}
+          highlight
+        />
+
+        <MetricCard
+          title="Blended CAC"
+          value={totals.paidConversions ? formatCurrency(blendedCAC) : "—"}
+          icon={Target}
+          subtitle="Total ad spend ÷ total paid students"
+          variant="outline"
+        />
+
+        <MetricCard
+          title="Month-over-month comparison"
+          value={`${percentage(paidConversionsMoM)}`}
+          icon={RefreshCw}
+          subtitle="Paid students acquired MoM"
+          trend={<TrendBadge direction={trendDirection(paidConversionsMoM)} label="Paid student trend" />}
+          variant="outline"
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">CAC by Market + Month-over-Month Comparison</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Shows ad spend, paid students acquired, CAC and MoM movement for each market.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full min-w-[1040px] text-left text-sm">
+              <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Market</th>
+                  <th className="px-4 py-3 font-semibold">Total Ad Spend</th>
+                  <th className="px-4 py-3 font-semibold">Paid Students Acquired</th>
+                  <th className="px-4 py-3 font-semibold">CAC</th>
+                  <th className="px-4 py-3 font-semibold">Previous Paid Students</th>
+                  <th className="px-4 py-3 font-semibold">Paid Students MoM</th>
+                  <th className="px-4 py-3 font-semibold">Previous Ad Spend</th>
+                  <th className="px-4 py-3 font-semibold">Ad Spend MoM</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {marketSummary.map((item) => (
+                  <tr key={item.market} className="transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-3 font-semibold">{item.market}</td>
+                    <td className="px-4 py-3">{formatCurrency(item.adSpend)}</td>
+                    <td className="px-4 py-3 font-semibold text-indigo-600">{formatNumber(item.paidConversions)}</td>
+                    <td className="px-4 py-3">{item.paidConversions ? formatCurrency(item.cac) : "—"}</td>
+                    <td className="px-4 py-3">{formatNumber(item.previousPaidConversions)}</td>
+                    <td className="px-4 py-3">
+                      <TrendBadge
+                        direction={trendDirection(item.paidConversionsMoM)}
+                        label={percentage(item.paidConversionsMoM)}
+                      />
+                    </td>
+                    <td className="px-4 py-3">{formatCurrency(item.previousAdSpend)}</td>
+                    <td className="px-4 py-3">
+                      <TrendBadge
+                        direction={trendDirection(item.adSpendMoM)}
+                        label={percentage(item.adSpendMoM)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+
+                <tr className="bg-muted/40 font-semibold">
+                  <td className="px-4 py-3">Total</td>
+                  <td className="px-4 py-3">{formatCurrency(totals.adSpend)}</td>
+                  <td className="px-4 py-3 text-indigo-600">{formatNumber(totals.paidConversions)}</td>
+                  <td className="px-4 py-3">{totals.paidConversions ? formatCurrency(blendedCAC) : "—"}</td>
+                  <td className="px-4 py-3">{formatNumber(previousPaidConversions)}</td>
+                  <td className="px-4 py-3">
+                    <TrendBadge direction={trendDirection(paidConversionsMoM)} label={percentage(paidConversionsMoM)} />
+                  </td>
+                  <td className="px-4 py-3">{formatCurrency(previousTotalAdSpend)}</td>
+                  <td className="px-4 py-3">
+                    <TrendBadge direction={trendDirection(adSpendMoM)} label={percentage(adSpendMoM)} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-indigo-200 bg-indigo-50/70 dark:border-indigo-900 dark:bg-indigo-950/20">
+        <CardContent className="grid gap-4 p-5 md:grid-cols-4">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 text-indigo-600" />
+            <div>
+              <p className="text-sm font-semibold">Report check</p>
+              <p className="text-xs text-muted-foreground">Total ad spend is visible.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 text-indigo-600" />
+            <div>
+              <p className="text-sm font-semibold">Paid students</p>
+              <p className="text-xs text-muted-foreground">Total paid students acquired is visible.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 text-indigo-600" />
+            <div>
+              <p className="text-sm font-semibold">CAC by market</p>
+              <p className="text-xs text-muted-foreground">Every market has a CAC row.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 text-indigo-600" />
+            <div>
+              <p className="text-sm font-semibold">MoM comparison</p>
+              <p className="text-xs text-muted-foreground">Paid students and ad spend are compared month-over-month.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
