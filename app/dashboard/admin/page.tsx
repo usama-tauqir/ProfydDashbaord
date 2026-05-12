@@ -141,10 +141,10 @@ interface Documentation {
 const getMockData = (period: Period) => {
   const factor =
     period === "all" ? 1 :
-    period === "yearly" ? 1 :
-    period === "monthly" ? 1 / 12 :
-    period === "weekly" ? 1 / 52 :
-    1 / 365;
+      period === "yearly" ? 1 :
+        period === "monthly" ? 1 / 12 :
+          period === "weekly" ? 1 / 52 :
+            1 / 365;
 
   const scale = (val: number) => Math.round(val * factor);
   const scaleMoney = (val: number) => +(val * factor).toFixed(0);
@@ -383,14 +383,14 @@ export default function AdminOpsDashboardPage() {
       </div>
       <Card className="mt-6">
         <CardHeader><CardTitle className="text-base">Petty Cash Flow</CardTitle></CardHeader>
-        <CardContent className="h-64">
+        <CardContent className="h-[300px] w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={pettyCashBar}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" />
-              <YAxis tickFormatter={(v) => `PKR ${(v/1000).toFixed(0)}k`} />
+              <YAxis tickFormatter={(v) => `PKR ${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(value: any) => `PKR ${value.toLocaleString()}`} />
-              <Bar dataKey="value" fill="#4f46e5" radius={[4,4,0,0]} />
+              <Bar dataKey="value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -466,9 +466,9 @@ export default function AdminOpsDashboardPage() {
             <BarChart data={rentBar}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" />
-              <YAxis tickFormatter={(v) => `PKR ${(v/1000).toFixed(0)}k`} />
+              <YAxis tickFormatter={(v) => `PKR ${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(value: any) => `PKR ${value.toLocaleString()}`} />
-              <Bar dataKey="value" fill="#8b5cf6" radius={[4,4,0,0]} />
+              <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -491,7 +491,7 @@ export default function AdminOpsDashboardPage() {
               <XAxis dataKey="name" />
               <YAxis allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="value" fill="#f59e0b" radius={[4,4,0,0]} />
+              <Bar dataKey="value" fill="#f59e0b" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -513,9 +513,9 @@ export default function AdminOpsDashboardPage() {
             <BarChart data={eventBar}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" />
-              <YAxis tickFormatter={(v) => `PKR ${(v/1000).toFixed(0)}k`} />
+              <YAxis tickFormatter={(v) => `PKR ${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(value: any) => `PKR ${value.toLocaleString()}`} />
-              <Bar dataKey="value" fill="#10b981" radius={[4,4,0,0]} />
+              <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -563,9 +563,9 @@ export default function AdminOpsDashboardPage() {
             <BarChart data={vendorBar}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" />
-              <YAxis tickFormatter={(v) => `PKR ${(v/1000).toFixed(0)}k`} />
+              <YAxis tickFormatter={(v) => `PKR ${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(value: any) => `PKR ${value.toLocaleString()}`} />
-              <Bar dataKey="value" fill="#ef4444" radius={[4,4,0,0]} />
+              <Bar dataKey="value" fill="#ef4444" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
