@@ -180,18 +180,26 @@ const actionImpact = [
 ];
 
 const COLORS = {
-  blue: "#2563eb",
-  sky: "#0ea5e9",
+  blue: "#4f46e5",
+  sky: "#6366f1",
   green: "#10b981",
-  emerald: "#059669",
+  emerald: "#10b981",
   amber: "#f59e0b",
   red: "#ef4444",
   violet: "#8b5cf6",
-  cyan: "#06b6d4",
+  cyan: "#ec4899",
   slate: "#64748b",
 };
 
-const CHART_COLORS = [COLORS.blue, COLORS.green, COLORS.amber, COLORS.red, COLORS.violet, COLORS.cyan];
+const CHART_COLORS = [COLORS.blue, COLORS.amber, COLORS.green, COLORS.red, COLORS.violet, COLORS.cyan];
+
+const tooltipStyle = {
+  borderRadius: 16,
+  border: "1px solid hsl(var(--border))",
+  background: "hsl(var(--card))",
+  color: "hsl(var(--card-foreground))",
+};
+
 
 function money(value: number) {
   return new Intl.NumberFormat("en-AU", {
@@ -211,20 +219,20 @@ function trendMeta(trend: Trend) {
     return {
       label: "Up vs last month",
       icon: ArrowUpRight,
-      className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
+      className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     };
   }
   if (trend === "down") {
     return {
       label: "Down vs last month",
       icon: ArrowDownRight,
-      className: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
+      className: "bg-red-500/10 text-red-600 dark:text-red-400",
     };
   }
   return {
     label: "Flat vs last month",
     icon: ArrowRight,
-    className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    className: "bg-muted text-muted-foreground",
   };
 }
 
@@ -233,10 +241,10 @@ function SectionTitle({ code, title, subtitle }: { code: string; title: string; 
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-blue-600 px-2.5 py-1 text-xs font-bold text-white dark:bg-blue-500">{code}</span>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-50">{title}</h2>
+          <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">{code}</span>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">{title}</h2>
         </div>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
       </div>
     </div>
   );
@@ -244,7 +252,7 @@ function SectionTitle({ code, title, subtitle }: { code: string; title: string; 
 
 function BaseCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <Card className={`rounded-3xl border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950 ${className}`}>
+    <Card className={`rounded-3xl border-border bg-card text-card-foreground shadow-sm ${className}`}>
       {children}
     </Card>
   );
@@ -264,11 +272,11 @@ function KpiCard({
   tone?: "blue" | "green" | "red" | "amber" | "violet";
 }) {
   const tones = {
-    blue: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
-    green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
-    red: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
-    amber: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
-    violet: "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300",
+    blue: "bg-primary/10 text-primary",
+    green: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    red: "bg-red-500/10 text-red-600 dark:text-red-400",
+    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   };
 
   return (
@@ -276,9 +284,9 @@ function KpiCard({
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
-            <p className="mt-3 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{value}</p>
-            <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{helper}</p>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="mt-3 text-2xl font-bold tracking-tight text-foreground">{value}</p>
+            <p className="mt-1 text-xs font-medium text-muted-foreground">{helper}</p>
           </div>
           <div className={`rounded-2xl p-3 ${tones[tone]}`}>
             <Icon className="h-5 w-5" />
@@ -301,8 +309,8 @@ function MiniChartCard({
   return (
     <BaseCard>
       <CardContent className="p-5">
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
-        <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{value}</p>
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <p className="mt-2 text-2xl font-bold tracking-tight text-foreground">{value}</p>
         <div className="mt-3 h-20">{children}</div>
       </CardContent>
     </BaseCard>
@@ -310,25 +318,25 @@ function MiniChartCard({
 }
 
 function DataTable({ children }: { children: ReactNode }) {
-  return <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">{children}</div>;
+  return <div className="overflow-x-auto rounded-2xl border border-border">{children}</div>;
 }
 
 function TableHeaderCell({ children }: { children: ReactNode }) {
-  return <th className="whitespace-nowrap bg-slate-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">{children}</th>;
+  return <th className="whitespace-nowrap bg-muted px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">{children}</th>;
 }
 
 function TableCell({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <td className={`whitespace-nowrap border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800 ${className}`}>{children}</td>;
+  return <td className={`whitespace-nowrap border-t border-border px-4 py-3 text-sm ${className}`}>{children}</td>;
 }
 
 function ProgressLine({ label, value, rightLabel }: { label: string; value: number; rightLabel: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium text-slate-700 dark:text-slate-300">{label}</span>
-        <span className="text-slate-500 dark:text-slate-400">{rightLabel}</span>
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="text-muted-foreground">{rightLabel}</span>
       </div>
-      <Progress value={value} className="h-2 bg-slate-200 dark:bg-slate-800" />
+      <Progress value={value} className="h-2 bg-muted" />
     </div>
   );
 }
@@ -356,17 +364,17 @@ export default function SalesDashboardPage() {
   ];
 
   return (
-    <div className="space-y-8 bg-white p-4 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:p-6 lg:p-8">
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="space-y-8 p-6">
+      <section className="rounded-3xl border border-border bg-card p-5 text-card-foreground shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="rounded-full bg-blue-600 px-3 py-1 text-white hover:bg-blue-600 dark:bg-blue-500">2⃣ SALES</Badge>
-              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Owner: {executive.owner}</Badge>
-              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Frequency: ● {executive.frequency}</Badge>
+              <Badge className="rounded-full bg-primary px-3 py-1 text-primary-foreground hover:bg-primary">2⃣ SALES</Badge>
+              <Badge variant="outline" className="rounded-full border-border">Owner: {executive.owner}</Badge>
+              <Badge variant="outline" className="rounded-full border-border">Frequency: ● {executive.frequency}</Badge>
             </div>
             <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Sales Dashboard</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               Monthly sales reporting tab with executive summary, funnel overview, source performance, revenue quality, efficiency, drop-offs, and support actions.
             </p>
           </div>
@@ -394,29 +402,29 @@ export default function SalesDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 text-sm md:grid-cols-2">
-                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
-                  <span className="text-slate-500 dark:text-slate-400">● Total new students signed:</span>
-                  <strong className="ml-2 text-slate-950 dark:text-white">{executive.totalNewStudentsSigned}</strong>
+                <div className="rounded-2xl bg-muted/50 p-4">
+                  <span className="text-muted-foreground">● Total new students signed:</span>
+                  <strong className="ml-2 text-foreground">{executive.totalNewStudentsSigned}</strong>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
-                  <span className="text-slate-500 dark:text-slate-400">● Net active students:</span>
-                  <strong className="ml-2 text-slate-950 dark:text-white">{executive.netActiveStudents.toLocaleString()}</strong>
+                <div className="rounded-2xl bg-muted/50 p-4">
+                  <span className="text-muted-foreground">● Net active students:</span>
+                  <strong className="ml-2 text-foreground">{executive.netActiveStudents.toLocaleString()}</strong>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
-                  <span className="text-slate-500 dark:text-slate-400">● Revenue collected:</span>
-                  <strong className="ml-2 text-slate-950 dark:text-white">{money(executive.totalRevenueCollected)}</strong>
+                <div className="rounded-2xl bg-muted/50 p-4">
+                  <span className="text-muted-foreground">● Revenue collected:</span>
+                  <strong className="ml-2 text-foreground">{money(executive.totalRevenueCollected)}</strong>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
-                  <span className="text-slate-500 dark:text-slate-400">● Performance:</span>
+                <div className="rounded-2xl bg-muted/50 p-4">
+                  <span className="text-muted-foreground">● Performance:</span>
                   <strong className="ml-2 text-emerald-600 dark:text-emerald-400">⬆ vs last month</strong>
                 </div>
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
-                  <span className="font-semibold text-emerald-700 dark:text-emerald-300">● Key win:</span>
-                  <p className="mt-1 text-emerald-900 dark:text-emerald-100">{executive.keyWin}</p>
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">● Key win:</span>
+                  <p className="mt-1 text-emerald-700 dark:text-emerald-300">{executive.keyWin}</p>
                 </div>
-                <div className="rounded-2xl border border-red-100 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
-                  <span className="font-semibold text-red-700 dark:text-red-300">● Key concern:</span>
-                  <p className="mt-1 text-red-900 dark:text-red-100">{executive.keyConcern}</p>
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
+                  <span className="font-semibold text-red-600 dark:text-red-400">● Key concern:</span>
+                  <p className="mt-1 text-red-700 dark:text-red-300">{executive.keyConcern}</p>
                 </div>
               </div>
             </CardContent>
@@ -435,10 +443,10 @@ export default function SalesDashboardPage() {
                       <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.03} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={12} />
                   <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => `${Number(v) / 1000}k`} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => money(Number(value ?? 0))} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => money(Number(value ?? 0))} />
                   <Area type="monotone" dataKey="revenue" name="Revenue" stroke={COLORS.blue} strokeWidth={3} fill="url(#executiveRevenue)" />
                   <Line type="monotone" dataKey="target" name="Target" stroke={COLORS.green} strokeWidth={2} dot={false} />
                 </AreaChart>
@@ -468,8 +476,8 @@ export default function SalesDashboardPage() {
                   <tbody>
                     {funnelRows.map((row) => (
                       <tr key={row.stage}>
-                        <TableCell className="font-medium text-slate-800 dark:text-slate-200">{row.stage}</TableCell>
-                        <TableCell className="font-bold text-slate-950 dark:text-white">{row.count.toLocaleString()}</TableCell>
+                        <TableCell className="font-medium text-foreground">{row.stage}</TableCell>
+                        <TableCell className="font-bold text-foreground">{row.count.toLocaleString()}</TableCell>
                       </tr>
                     ))}
                   </tbody>
@@ -504,10 +512,10 @@ export default function SalesDashboardPage() {
             <CardContent className="h-[330px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnelChartRows} layout="vertical" margin={{ top: 8, right: 18, left: 150, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-border" />
                   <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="stage" width={145} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="count" name="Count" radius={[0, 8, 8, 0]} barSize={25}>
                     {funnelChartRows.map((entry) => (
                       <Cell key={entry.stage} fill={entry.fill} />
@@ -531,7 +539,7 @@ export default function SalesDashboardPage() {
                     ))}
                   </RadialBar>
                   <Legend iconSize={9} layout="vertical" verticalAlign="middle" align="right" />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${Number(value ?? 0)}%`} />
                 </RadialBarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -562,13 +570,13 @@ export default function SalesDashboardPage() {
                 <tbody>
                   {sourceRows.map((row) => (
                     <tr key={row.source}>
-                      <TableCell className="font-semibold text-slate-900 dark:text-white">{row.source}</TableCell>
+                      <TableCell className="font-semibold text-foreground">{row.source}</TableCell>
                       <TableCell>{row.leads}</TableCell>
                       <TableCell>{row.trials}</TableCell>
                       <TableCell>{row.conducted}</TableCell>
                       <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">{row.paidSignUps}</TableCell>
                       <TableCell>
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">{row.conversion}%</span>
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{row.conversion}%</span>
                       </TableCell>
                     </tr>
                   ))}
@@ -586,10 +594,10 @@ export default function SalesDashboardPage() {
             <CardContent className="h-[360px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={sourceRows} margin={{ top: 10, right: 8, left: -10, bottom: 46 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border" />
                   <XAxis dataKey="source" axisLine={false} tickLine={false} interval={0} angle={-15} textAnchor="end" fontSize={11} />
                   <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend />
                   <Bar dataKey="leads" name="Leads" fill={COLORS.blue} radius={[6, 6, 0, 0]} />
                   <Bar dataKey="trials" name="Trials" fill={COLORS.amber} radius={[6, 6, 0, 0]} />
@@ -612,7 +620,7 @@ export default function SalesDashboardPage() {
                       <Cell key={entry.source} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend iconSize={9} />
                 </PieChart>
               </ResponsiveContainer>
@@ -644,7 +652,7 @@ export default function SalesDashboardPage() {
                       <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${Number(value ?? 0)}%`} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -657,10 +665,10 @@ export default function SalesDashboardPage() {
             <CardContent className="h-[330px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueQuality.paymentMix} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${Number(value ?? 0)}%`} />
                   <Bar dataKey="value" name="Payment %" radius={[10, 10, 0, 0]}>
                     {revenueQuality.paymentMix.map((entry, index) => (
                       <Cell key={entry.name} fill={index === 0 ? COLORS.green : COLORS.amber} />
@@ -678,10 +686,10 @@ export default function SalesDashboardPage() {
             <CardContent className="h-[330px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyRevenue} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `${Number(v) / 1000}k`} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => money(Number(value ?? 0))} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => money(Number(value ?? 0))} />
                   <Line type="monotone" dataKey="revenue" name="Revenue" stroke={COLORS.violet} strokeWidth={3} dot={{ r: 4 }} />
                   <Line type="monotone" dataKey="target" name="Target" stroke={COLORS.green} strokeWidth={2} dot={false} />
                 </LineChart>
@@ -707,7 +715,7 @@ export default function SalesDashboardPage() {
                 <tbody>
                   {revenueQuality.areaWise.map((row) => (
                     <tr key={row.area}>
-                      <TableCell className="font-semibold text-slate-900 dark:text-white">{row.area}</TableCell>
+                      <TableCell className="font-semibold text-foreground">{row.area}</TableCell>
                       <TableCell>{row.students}</TableCell>
                       <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">{money(row.revenue)}</TableCell>
                     </tr>
@@ -719,11 +727,11 @@ export default function SalesDashboardPage() {
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueQuality.areaWise} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border" />
                   <XAxis dataKey="area" axisLine={false} tickLine={false} />
                   <YAxis yAxisId="left" axisLine={false} tickLine={false} />
                   <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tickFormatter={(v) => `${Number(v) / 1000}k`} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend />
                   <Bar yAxisId="left" dataKey="students" name="Students" fill={COLORS.blue} radius={[8, 8, 0, 0]} />
                   <Bar yAxisId="right" dataKey="revenue" name="Revenue" fill={COLORS.green} radius={[8, 8, 0, 0]} />
@@ -752,10 +760,10 @@ export default function SalesDashboardPage() {
             <CardContent className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={efficiencyTrend} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border" />
                   <XAxis dataKey="week" axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend />
                   <Line type="monotone" dataKey="response" name="First Response (min)" stroke={COLORS.green} strokeWidth={3} />
                   <Line type="monotone" dataKey="leadToTrial" name="Lead → Trial (days)" stroke={COLORS.blue} strokeWidth={3} />
@@ -779,10 +787,10 @@ export default function SalesDashboardPage() {
                   { metric: "Follow-up", score: 84 },
                   { metric: "Close Rate", score: 88 },
                 ]}>
-                  <PolarGrid stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <PolarGrid stroke="currentColor" className="text-border" />
                   <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
                   <Radar name="Efficiency" dataKey="score" stroke={COLORS.blue} fill={COLORS.blue} fillOpacity={0.25} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                 </RadarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -810,7 +818,7 @@ export default function SalesDashboardPage() {
                   <tbody>
                     {dropOffRows.map((row) => (
                       <tr key={row.reason}>
-                        <TableCell className="font-semibold text-slate-900 dark:text-white">{row.reason}</TableCell>
+                        <TableCell className="font-semibold text-foreground">{row.reason}</TableCell>
                         <TableCell className="font-bold text-red-600 dark:text-red-400">{row.approxPercent}%</TableCell>
                       </tr>
                     ))}
@@ -839,7 +847,7 @@ export default function SalesDashboardPage() {
                         <Cell key={entry.reason} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${Number(value ?? 0)}%`} />
                     <Legend iconSize={9} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -853,10 +861,10 @@ export default function SalesDashboardPage() {
               <CardContent className="h-[330px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={dropOffRows} layout="vertical" margin={{ top: 8, right: 16, left: 116, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-border" />
                     <XAxis type="number" axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                     <YAxis type="category" dataKey="reason" width={112} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${Number(value ?? 0)}%`} />
                     <Bar dataKey="approxPercent" name="Approx %" radius={[0, 8, 8, 0]}>
                       {dropOffRows.map((entry, index) => (
                         <Cell key={entry.reason} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -877,45 +885,45 @@ export default function SalesDashboardPage() {
           <BaseCard>
             <CardContent className="p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="rounded-2xl bg-blue-50 p-3 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                <div className="rounded-2xl bg-primary/10 p-3 text-primary">
                   <Users className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-950 dark:text-white">What sales needs from CEO</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Approval and commercial support</p>
+                  <p className="font-bold text-foreground">What sales needs from CEO</p>
+                  <p className="text-xs text-muted-foreground">Approval and commercial support</p>
                 </div>
               </div>
-              <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">{supportActions.ceo}</p>
+              <p className="text-sm leading-6 text-foreground">{supportActions.ceo}</p>
             </CardContent>
           </BaseCard>
 
           <BaseCard>
             <CardContent className="p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-400">
                   <Globe2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-950 dark:text-white">What sales needs from marketing</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Lead quality and campaign support</p>
+                  <p className="font-bold text-foreground">What sales needs from marketing</p>
+                  <p className="text-xs text-muted-foreground">Lead quality and campaign support</p>
                 </div>
               </div>
-              <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">{supportActions.marketing}</p>
+              <p className="text-sm leading-6 text-foreground">{supportActions.marketing}</p>
             </CardContent>
           </BaseCard>
 
           <BaseCard>
             <CardContent className="p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="rounded-2xl bg-violet-50 p-3 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
+                <div className="rounded-2xl bg-violet-500/10 p-3 text-violet-600 dark:text-violet-400">
                   <Layers3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-950 dark:text-white">What sales will change next month</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Process improvements</p>
+                  <p className="font-bold text-foreground">What sales will change next month</p>
+                  <p className="text-xs text-muted-foreground">Process improvements</p>
                 </div>
               </div>
-              <p className="text-sm leading-6 text-slate-700 dark:text-slate-300">{supportActions.salesChange}</p>
+              <p className="text-sm leading-6 text-foreground">{supportActions.salesChange}</p>
             </CardContent>
           </BaseCard>
         </div>
@@ -927,9 +935,9 @@ export default function SalesDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {supportActions.how.map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                <div key={item} className="flex items-center gap-3 rounded-2xl bg-muted/50 p-4">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="font-medium text-slate-800 dark:text-slate-200">{item}</span>
+                  <span className="font-medium text-foreground">{item}</span>
                 </div>
               ))}
             </CardContent>
@@ -942,10 +950,10 @@ export default function SalesDashboardPage() {
             <CardContent className="h-[310px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={actionImpact} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-border" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend />
                   <Bar dataKey="urgency" name="Urgency" fill={COLORS.red} radius={[8, 8, 0, 0]} />
                   <Bar dataKey="impact" name="Impact" fill={COLORS.blue} radius={[8, 8, 0, 0]} />

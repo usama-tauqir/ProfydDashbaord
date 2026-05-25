@@ -109,17 +109,17 @@ type HistoryRow = {
 };
 
 const COLORS = {
-  blue: "#2563eb",
-  sky: "#0ea5e9",
-  green: "#10b981",
+  indigo: "#4f46e5",
+  indigoLight: "#6366f1",
   amber: "#f59e0b",
+  green: "#10b981",
   red: "#ef4444",
   violet: "#8b5cf6",
-  cyan: "#06b6d4",
+  pink: "#ec4899",
   slate: "#64748b",
 };
 
-const CHART_COLORS = [COLORS.blue, COLORS.green, COLORS.amber, COLORS.red, COLORS.violet, COLORS.cyan];
+const CHART_COLORS = [COLORS.indigo, COLORS.amber, COLORS.green, COLORS.red, COLORS.violet, COLORS.pink];
 
 function currentMonth() {
   return new Date().toISOString().slice(0, 7);
@@ -230,7 +230,7 @@ function reportToHistoryRow(report: FinanceReport): HistoryRow {
 
 function BaseCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <Card className={`rounded-3xl border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950 ${className}`}>
+    <Card className={`rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm dark:border-white/10 dark:bg-[#151a1b] dark:text-white ${className}`}>
       {children}
     </Card>
   );
@@ -241,21 +241,21 @@ function KpiCard({
   value,
   helper,
   icon: Icon,
-  tone = "blue",
+  tone = "indigo",
 }: {
   title: string;
   value: string | number;
   helper: string;
   icon: ElementType;
-  tone?: "blue" | "green" | "amber" | "violet" | "red" | "slate";
+  tone?: "indigo" | "green" | "amber" | "violet" | "red" | "slate";
 }) {
   const tones = {
-    blue: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
-    green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
-    amber: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
-    violet: "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300",
-    red: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
-    slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    indigo: "bg-indigo-50 text-indigo-600 dark:bg-[#0f1d3a] dark:text-[#3157ff]",
+    green: "bg-indigo-50 text-indigo-600 dark:bg-[#0f1d3a] dark:text-[#3157ff]",
+    amber: "bg-indigo-50 text-indigo-600 dark:bg-[#0f1d3a] dark:text-[#3157ff]",
+    violet: "bg-indigo-50 text-indigo-600 dark:bg-[#0f1d3a] dark:text-[#3157ff]",
+    red: "bg-indigo-50 text-indigo-600 dark:bg-[#0f1d3a] dark:text-[#3157ff]",
+    slate: "bg-indigo-50 text-indigo-600 dark:bg-[#0f1d3a] dark:text-[#3157ff]",
   };
 
   return (
@@ -263,11 +263,11 @@ function KpiCard({
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
             <p className="mt-3 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{value}</p>
             <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{helper}</p>
           </div>
-          <div className={`rounded-2xl p-3 ${tones[tone]}`}>
+          <div className={`rounded-md p-2 ${tones[tone]}`}>
             <Icon className="h-5 w-5" />
           </div>
         </div>
@@ -278,9 +278,9 @@ function KpiCard({
 
 function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div>
-      <h2 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-slate-50">{title}</h2>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>
+    <div className="border-l-4 border-indigo-600 pl-3">
+      <h2 className="text-lg font-semibold text-slate-950 dark:text-white">{title}</h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
     </div>
   );
 }
@@ -308,7 +308,7 @@ function InputField({
         value={value}
         placeholder={placeholder ?? (type === "number" ? "0" : "Enter text")}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-2xl border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+        className="h-11 rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-[#151a1b] text-slate-950 dark:text-white"
       />
     </div>
   );
@@ -321,7 +321,7 @@ function ProgressLine({ label, value, rightLabel }: { label: string; value: numb
         <span className="font-medium text-slate-700 dark:text-slate-300">{label}</span>
         <span className="text-slate-500 dark:text-slate-400">{rightLabel}</span>
       </div>
-      <Progress value={Math.min(value, 100)} className="h-2 bg-slate-200 dark:bg-slate-800" />
+      <Progress value={Math.min(value, 100)} className="h-2 bg-slate-200 dark:bg-white/10" />
     </div>
   );
 }
@@ -527,22 +527,22 @@ export default function FinanceDashboardPage() {
   };
 
   return (
-    <div className="space-y-8 bg-white p-4 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:p-6 lg:p-8">
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="space-y-8 p-6 text-slate-950 dark:text-white">
+      <section className="border-0 bg-transparent p-0 shadow-none">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="rounded-full bg-blue-600 px-3 py-1 text-white hover:bg-blue-600 dark:bg-blue-500">3⃣ Finance / Invoicing</Badge>
-              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Owner: Farah and Zeeshan</Badge>
-              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Frequency: Monthly</Badge>
+              <Badge className="rounded-md border border-slate-200 bg-white px-3 py-1 text-slate-950 hover:bg-slate-100 dark:border-white/10 dark:bg-[#111719] dark:text-white dark:hover:bg-[#1f292b]">3⃣ Finance / Invoicing</Badge>
+              <Badge variant="outline" className="rounded-md border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-[#151a1b] dark:text-slate-200">Owner: Farah and Zeeshan</Badge>
+              <Badge variant="outline" className="rounded-md border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-[#151a1b] dark:text-slate-200">Frequency: Monthly</Badge>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Finance / Invoicing Dashboard</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">Finance / Invoicing Dashboard</h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-500 dark:text-slate-400">
               Monthly cash and billing reporting for invoiced amount, cash collected, receivables aging, voids, refunds, and chargebacks.
             </p>
           </div>
 
-          <Button onClick={fetchReports} disabled={loading} variant="outline" className="h-10 rounded-full border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+          <Button onClick={fetchReports} disabled={loading} variant="outline" className="h-9 rounded-md border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#111719] text-slate-950 dark:text-white hover:bg-slate-200 dark:hover:bg-[#1f292b]">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh
           </Button>
@@ -550,28 +550,29 @@ export default function FinanceDashboardPage() {
       </section>
 
       {error ? (
-        <Alert className="rounded-3xl border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
+        <Alert className="rounded-xl border-red-900/60 bg-red-950/30">
           <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-800 dark:text-red-200">Error</AlertTitle>
-          <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
+          <AlertTitle className="text-red-200">Error</AlertTitle>
+          <AlertDescription className="text-red-300">{error}</AlertDescription>
         </Alert>
       ) : null}
 
       {message ? (
-        <Alert className="rounded-3xl border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30">
+        <Alert className="rounded-xl border-emerald-900/60 bg-emerald-950/30">
           <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          <AlertTitle className="text-emerald-800 dark:text-emerald-200">Saved</AlertTitle>
-          <AlertDescription className="text-emerald-700 dark:text-emerald-300">{message}</AlertDescription>
+          <AlertTitle className="text-emerald-200">Saved</AlertTitle>
+          <AlertDescription className="text-emerald-300">{message}</AlertDescription>
         </Alert>
       ) : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard title="Invoiced amount" value={money(activeReport.invoiced_amount)} helper="Total amount billed this month" icon={Receipt} tone="blue" />
+        <KpiCard title="Invoiced amount" value={money(activeReport.invoiced_amount)} helper="Total amount billed this month" icon={Receipt} tone="indigo" />
         <KpiCard title="Cash collected" value={money(activeReport.cash_collected)} helper={`${collectionRate}% collection rate`} icon={Wallet} tone="green" />
         <KpiCard title="Outstanding receivables" value={money(activeReport.outstanding_receivables)} helper={`${outstandingRate}% of invoiced amount`} icon={CreditCard} tone="red" />
         <KpiCard title="Chargebacks" value={`${activeReport.chargebacks_count} / ${money(activeReport.chargebacks_value)}`} helper="Count + value" icon={ShieldAlert} tone="amber" />
       </section>
 
+      {/* Monthly cash & billing submission section commented out as requested.
       <section className="grid gap-5 xl:grid-cols-[1.05fr_.95fr]">
         <BaseCard>
           <CardHeader>
@@ -591,7 +592,7 @@ export default function FinanceDashboardPage() {
               <InputField label="Outstanding receivables" value={form.outstanding_receivables} onChange={(value) => updateForm("outstanding_receivables", value)} />
             </div>
 
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+            <div className="rounded-xl border border-slate-200 p-4 border-slate-800">
               <p className="mb-4 font-semibold text-slate-950 dark:text-white">Outstanding receivables aging</p>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <InputField label="0–30 days" value={form.aging_0_30} onChange={(value) => updateForm("aging_0_30", value)} />
@@ -602,21 +603,21 @@ export default function FinanceDashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="rounded-xl border border-slate-200 p-4 border-slate-800">
                 <p className="mb-4 font-semibold text-slate-950 dark:text-white">Voids</p>
                 <div className="grid gap-4">
                   <InputField label="Voids count" value={form.voids_count} onChange={(value) => updateForm("voids_count", value)} />
                   <InputField label="Voids value" value={form.voids_value} onChange={(value) => updateForm("voids_value", value)} />
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="rounded-xl border border-slate-200 p-4 border-slate-800">
                 <p className="mb-4 font-semibold text-slate-950 dark:text-white">Refunds</p>
                 <div className="grid gap-4">
                   <InputField label="Refunds count" value={form.refunds_count} onChange={(value) => updateForm("refunds_count", value)} />
                   <InputField label="Refunds value" value={form.refunds_value} onChange={(value) => updateForm("refunds_value", value)} />
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="rounded-xl border border-slate-200 p-4 border-slate-800">
                 <p className="mb-4 font-semibold text-slate-950 dark:text-white">Chargebacks</p>
                 <div className="grid gap-4">
                   <InputField label="Chargebacks count" value={form.chargebacks_count} onChange={(value) => updateForm("chargebacks_count", value)} />
@@ -634,11 +635,11 @@ export default function FinanceDashboardPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button onClick={saveReport} disabled={saving} className="rounded-full bg-blue-600 px-5 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+              <Button onClick={saveReport} disabled={saving} className="rounded-md border border-slate-700 bg-black px-5 text-slate-950 dark:text-white hover:bg-slate-900">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save / Update Month
               </Button>
-              <Button onClick={resetForm} type="button" variant="outline" className="rounded-full border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+              <Button onClick={resetForm} type="button" variant="outline" className="rounded-md border-slate-200 dark:border-white/10 bg-white dark:bg-[#151a1b] text-slate-950 dark:text-white">
                 Clear Form
               </Button>
             </div>
@@ -650,10 +651,10 @@ export default function FinanceDashboardPage() {
             <CardTitle className="text-base">Latest Finance Report Preview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+            <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#151a1b] p-4">
               <p className="text-sm text-slate-500 dark:text-slate-400">Latest month</p>
               <h2 className="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{formatMonth(activeReport.report_month)}</h2>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{activeReport.notes ?? "No notes added."}</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{activeReport.notes ?? "No notes added."}</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -672,6 +673,8 @@ export default function FinanceDashboardPage() {
         </BaseCard>
       </section>
 
+      */}
+
       <section className="grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
         <BaseCard>
           <CardHeader>
@@ -682,20 +685,20 @@ export default function FinanceDashboardPage() {
               <AreaChart data={historyRows} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="invoiceFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={COLORS.blue} stopOpacity={0.35} />
-                    <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.03} />
+                    <stop offset="5%" stopColor={COLORS.indigo} stopOpacity={0.35} />
+                    <stop offset="95%" stopColor={COLORS.indigo} stopOpacity={0.03} />
                   </linearGradient>
                   <linearGradient id="cashFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={COLORS.green} stopOpacity={0.28} />
                     <stop offset="95%" stopColor={COLORS.green} stopOpacity={0.03} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-950 dark:text-white/20" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${Number(value) / 1000}k`} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => money(Number(value ?? 0))} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))" }} formatter={(value) => money(Number(value ?? 0))} />
                 <Legend />
-                <Area type="monotone" dataKey="invoiced" name="Invoiced" stroke={COLORS.blue} strokeWidth={3} fill="url(#invoiceFill)" />
+                <Area type="monotone" dataKey="invoiced" name="Invoiced" stroke={COLORS.indigo} strokeWidth={3} fill="url(#invoiceFill)" />
                 <Area type="monotone" dataKey="collected" name="Cash collected" stroke={COLORS.green} strokeWidth={3} fill="url(#cashFill)" />
                 <Line type="monotone" dataKey="outstanding" name="Outstanding" stroke={COLORS.red} strokeWidth={2.5} />
               </AreaChart>
@@ -715,7 +718,7 @@ export default function FinanceDashboardPage() {
                     <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => money(Number(value ?? 0))} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))" }} formatter={(value) => money(Number(value ?? 0))} />
                 <Legend iconSize={9} />
               </PieChart>
             </ResponsiveContainer>
@@ -731,10 +734,10 @@ export default function FinanceDashboardPage() {
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={agingRows} layout="vertical" margin={{ top: 8, right: 20, left: 78, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-slate-950 dark:text-white/20" />
                 <XAxis type="number" axisLine={false} tickLine={false} tickFormatter={(value) => `${Number(value) / 1000}k`} />
                 <YAxis type="category" dataKey="bucket" width={76} axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => money(Number(value ?? 0))} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))" }} formatter={(value) => money(Number(value ?? 0))} />
                 <Bar dataKey="value" name="Receivables" radius={[0, 8, 8, 0]}>
                   {agingRows.map((entry, index) => (
                     <Cell key={entry.bucket} fill={index < 2 ? COLORS.amber : COLORS.red} />
@@ -752,13 +755,13 @@ export default function FinanceDashboardPage() {
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={issueRows} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-950 dark:text-white/20" />
                 <XAxis dataKey="type" axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left" axisLine={false} tickLine={false} allowDecimals={false} />
                 <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tickFormatter={(value) => `${Number(value) / 1000}k`} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))" }} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="count" name="Count" fill={COLORS.blue} radius={[8, 8, 0, 0]} />
+                <Bar yAxisId="left" dataKey="count" name="Count" fill={COLORS.indigo} radius={[8, 8, 0, 0]} />
                 <Bar yAxisId="right" dataKey="value" name="Value" fill={COLORS.red} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -780,7 +783,7 @@ export default function FinanceDashboardPage() {
                   ))}
                 </RadialBar>
                 <Legend iconSize={9} layout="vertical" verticalAlign="middle" align="right" />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))" }} formatter={(value) => `${Number(value ?? 0)}%`} />
               </RadialBarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -793,10 +796,10 @@ export default function FinanceDashboardPage() {
           <CardContent className="h-[330px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={historyRows} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-950 dark:text-white/20" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))" }} formatter={(value) => `${Number(value ?? 0)}%`} />
                 <Legend />
                 <Line type="monotone" dataKey="collectionRate" name="Collection rate" stroke={COLORS.green} strokeWidth={3} dot={{ r: 4 }} />
               </LineChart>
@@ -805,12 +808,13 @@ export default function FinanceDashboardPage() {
         </BaseCard>
       </section>
 
+      {/* Saved Finance Reports table commented out as requested.
       <BaseCard>
         <CardHeader>
           <CardTitle className="text-base">Saved Finance Reports</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 border-slate-800">
             <table className="w-full min-w-[1100px] text-left">
               <thead>
                 <tr>
@@ -824,7 +828,7 @@ export default function FinanceDashboardPage() {
                     "Chargebacks",
                     "Actions",
                   ].map((header) => (
-                    <th key={header} className="bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                    <th key={header} className="bg-white dark:bg-[#151a1b] px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       {header}
                     </th>
                   ))}
@@ -834,19 +838,19 @@ export default function FinanceDashboardPage() {
                 {reports.length ? (
                   reports.map((report) => (
                     <tr key={report.id}>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900 dark:border-slate-800 dark:text-white">{formatMonth(report.report_month)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{money(report.invoiced_amount)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm font-bold text-emerald-600 dark:border-slate-800 dark:text-emerald-400">{money(report.cash_collected)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm font-bold text-red-600 dark:border-slate-800 dark:text-red-400">{money(report.outstanding_receivables)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.voids_count} / {money(report.voids_value)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.refunds_count} / {money(report.refunds_value)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.chargebacks_count} / {money(report.chargebacks_value)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-semibold text-slate-900 border-slate-800 text-slate-950 dark:text-white">{formatMonth(report.report_month)}</td>
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm border-slate-800">{money(report.invoiced_amount)}</td>
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-bold text-emerald-600 border-slate-800 text-emerald-400">{money(report.cash_collected)}</td>
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm font-bold text-red-600 border-slate-800 text-red-400">{money(report.outstanding_receivables)}</td>
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm border-slate-800">{report.voids_count} / {money(report.voids_value)}</td>
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm border-slate-800">{report.refunds_count} / {money(report.refunds_value)}</td>
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm border-slate-800">{report.chargebacks_count} / {money(report.chargebacks_value)}</td>
+                      <td className="border-t border-slate-200 dark:border-white/10 px-4 py-3 text-sm border-slate-800">
                         <div className="flex gap-2">
-                          <Button onClick={() => editReport(report)} size="sm" variant="outline" className="rounded-full border-slate-200 dark:border-slate-800">
+                          <Button onClick={() => editReport(report)} size="sm" variant="outline" className="rounded-md border-slate-200 border-slate-800">
                             <Edit3 className="mr-1 h-3.5 w-3.5" /> Edit
                           </Button>
-                          <Button onClick={() => deleteReport(report)} size="sm" variant="outline" disabled={deletingId === report.id} className="rounded-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30">
+                          <Button onClick={() => deleteReport(report)} size="sm" variant="outline" disabled={deletingId === report.id} className="rounded-md border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30">
                             {deletingId === report.id ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1 h-3.5 w-3.5" />}
                             Delete
                           </Button>
@@ -856,7 +860,7 @@ export default function FinanceDashboardPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                    <td colSpan={8} className="border-t border-slate-200 dark:border-white/10 px-4 py-8 text-center text-sm text-slate-500 border-slate-800 text-slate-500 dark:text-slate-400">
                       No saved finance reports yet. Enter your first monthly report above and click Save / Update Month.
                     </td>
                   </tr>
@@ -865,7 +869,8 @@ export default function FinanceDashboardPage() {
             </table>
           </div>
         </CardContent>
-      </BaseCard>
+      </BaseCard>      */}
+
     </div>
   );
 }

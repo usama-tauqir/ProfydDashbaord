@@ -81,8 +81,9 @@ type HistoryRow = {
   trialToPaid: number;
 };
 
+// Updated palette – indigo‑first, matching admin dashboard’s primary accent
 const COLORS = {
-  blue: "#2563eb",
+  primary: "#4f46e5", // indigo
   sky: "#0ea5e9",
   green: "#10b981",
   amber: "#f59e0b",
@@ -91,7 +92,7 @@ const COLORS = {
   cyan: "#06b6d4",
 };
 
-const CHART_COLORS = [COLORS.blue, COLORS.green, COLORS.amber, COLORS.violet, COLORS.cyan, COLORS.red];
+const CHART_COLORS = [COLORS.primary, COLORS.green, COLORS.amber, COLORS.violet, COLORS.cyan, COLORS.red];
 
 const fallbackReport: FunnelReport = {
   id: "fallback",
@@ -164,45 +165,37 @@ const emptyForm: FunnelForm = {
   notes: "",
 };
 
+// Base card now uses shadcn theme tokens
 function BaseCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <Card className={`rounded-3xl border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950 ${className}`}>
+    <Card className={`border-border bg-card text-card-foreground ${className}`}>
       {children}
     </Card>
   );
 }
 
+// Simplified KPI card – always uses primary accent, matching MetricCard style
 function KpiCard({
   title,
   value,
   helper,
   icon: Icon,
-  tone = "blue",
 }: {
   title: string;
   value: string | number;
   helper: string;
   icon: ElementType;
-  tone?: "blue" | "green" | "amber" | "violet" | "red";
 }) {
-  const tones = {
-    blue: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300",
-    green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300",
-    amber: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
-    violet: "bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300",
-    red: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
-  };
-
   return (
     <BaseCard>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
-            <p className="mt-3 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">{value}</p>
-            <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">{helper}</p>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="mt-3 text-2xl font-bold tracking-tight text-card-foreground">{value}</p>
+            <p className="mt-1 text-xs text-muted-foreground/70">{helper}</p>
           </div>
-          <div className={`rounded-2xl p-3 ${tones[tone]}`}>
+          <div className="rounded-2xl bg-primary/10 p-3 text-primary">
             <Icon className="h-5 w-5" />
           </div>
         </div>
@@ -224,7 +217,7 @@ function InputField({
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</Label>
+      <Label className="text-sm font-semibold text-foreground">{label}</Label>
       <Input
         type="number"
         min="0"
@@ -232,7 +225,7 @@ function InputField({
         value={value}
         placeholder={placeholder ?? "0"}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-2xl border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+        className="h-11 rounded-2xl border-border bg-background"
       />
     </div>
   );
@@ -242,10 +235,10 @@ function ProgressLine({ label, value, rightLabel }: { label: string; value: numb
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium text-slate-700 dark:text-slate-300">{label}</span>
-        <span className="text-slate-500 dark:text-slate-400">{rightLabel}</span>
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="text-muted-foreground">{rightLabel}</span>
       </div>
-      <Progress value={Math.min(value, 100)} className="h-2 bg-slate-200 dark:bg-slate-800" />
+      <Progress value={Math.min(value, 100)} className="h-2 bg-muted" />
     </div>
   );
 }
@@ -414,22 +407,23 @@ export default function SalesLeadFunnelPage() {
   };
 
   return (
-    <div className="space-y-8 bg-white p-4 text-slate-950 dark:bg-slate-950 dark:text-slate-50 sm:p-6 lg:p-8">
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="space-y-8 p-6">
+      {/* Header – matching admin dashboard style */}
+      <section className="rounded-lg border border-border bg-card p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="rounded-full bg-blue-600 px-3 py-1 text-white hover:bg-blue-600 dark:bg-blue-500">B. Lead Funnel Overview</Badge>
-              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Data Entry + View</Badge>
-              <Badge variant="outline" className="rounded-full border-slate-200 dark:border-slate-700">Dashboard Source: Supabase</Badge>
+              <Badge className="rounded-full bg-primary px-3 py-1 text-primary-foreground">B. Lead Funnel Overview</Badge>
+              <Badge variant="outline" className="rounded-full border-border">Data Entry + View</Badge>
+              <Badge variant="outline" className="rounded-full border-border">Dashboard Source: Supabase</Badge>
             </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Lead Funnel Overview</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               Enter monthly funnel counts, automatically calculate conversion percentages, view saved reports, and use the latest report on the Sales Dashboard.
             </p>
           </div>
 
-          <Button onClick={fetchReports} disabled={loading} variant="outline" className="h-10 rounded-full border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+          <Button onClick={fetchReports} disabled={loading} variant="outline" className="h-10 rounded-full border-border bg-card">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh
           </Button>
@@ -437,7 +431,7 @@ export default function SalesLeadFunnelPage() {
       </section>
 
       {error ? (
-        <Alert className="rounded-3xl border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
+        <Alert className="rounded-lg border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-800 dark:text-red-200">Error</AlertTitle>
           <AlertDescription className="text-red-700 dark:text-red-300">{error}</AlertDescription>
@@ -445,7 +439,7 @@ export default function SalesLeadFunnelPage() {
       ) : null}
 
       {message ? (
-        <Alert className="rounded-3xl border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30">
+        <Alert className="rounded-lg border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30">
           <CheckCircle2 className="h-4 w-4 text-emerald-600" />
           <AlertTitle className="text-emerald-800 dark:text-emerald-200">Saved</AlertTitle>
           <AlertDescription className="text-emerald-700 dark:text-emerald-300">{message}</AlertDescription>
@@ -459,12 +453,12 @@ export default function SalesLeadFunnelPage() {
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Report Month</Label>
+              <Label className="text-sm font-semibold text-foreground">Report Month</Label>
               <Input
                 type="month"
                 value={form.report_month}
                 onChange={(event) => updateForm("report_month", event.target.value)}
-                className="h-11 rounded-2xl border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+                className="h-11 rounded-2xl border-border bg-background"
               />
             </div>
 
@@ -477,27 +471,27 @@ export default function SalesLeadFunnelPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</Label>
+              <Label className="text-sm font-semibold text-foreground">Notes</Label>
               <Input
                 value={form.notes}
                 onChange={(event) => updateForm("notes", event.target.value)}
                 placeholder="Optional short note for this month"
-                className="h-11 rounded-2xl border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+                className="h-11 rounded-2xl border-border bg-background"
               />
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
-              <KpiCard title="Lead → Trial %" value={`${formNumbers.leadToTrial}%`} helper="Trials booked / total leads" icon={Target} tone="blue" />
-              <KpiCard title="Lead → Paid %" value={`${formNumbers.leadToPaid}%`} helper="Paid sign-ups / total leads" icon={BadgeDollarSign} tone="green" />
-              <KpiCard title="Trial → Paid %" value={`${formNumbers.trialToPaid}%`} helper="Paid sign-ups / trials conducted" icon={CheckCircle2} tone="violet" />
+              <KpiCard title="Lead → Trial %" value={`${formNumbers.leadToTrial}%`} helper="Trials booked / total leads" icon={Target} />
+              <KpiCard title="Lead → Paid %" value={`${formNumbers.leadToPaid}%`} helper="Paid sign-ups / total leads" icon={BadgeDollarSign} />
+              <KpiCard title="Trial → Paid %" value={`${formNumbers.trialToPaid}%`} helper="Paid sign-ups / trials conducted" icon={CheckCircle2} />
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button onClick={saveReport} disabled={saving} className="rounded-full bg-blue-600 px-5 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+              <Button onClick={saveReport} disabled={saving} className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save / Update Month
               </Button>
-              <Button onClick={resetForm} type="button" variant="outline" className="rounded-full border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+              <Button onClick={resetForm} type="button" variant="outline" className="rounded-full border-border bg-card">
                 Clear Form
               </Button>
             </div>
@@ -509,16 +503,16 @@ export default function SalesLeadFunnelPage() {
             <CardTitle className="text-base">Latest Report Preview</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
-              <p className="text-sm text-slate-500 dark:text-slate-400">Latest month</p>
-              <h2 className="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{formatMonth(activeReport.report_month)}</h2>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{activeReport.notes ?? "No notes added."}</p>
+            <div className="rounded-2xl bg-muted p-4">
+              <p className="text-sm text-muted-foreground">Latest month</p>
+              <h2 className="mt-1 text-2xl font-bold text-card-foreground">{formatMonth(activeReport.report_month)}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{activeReport.notes ?? "No notes added."}</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <KpiCard title="Total leads" value={activeReport.total_leads_received.toLocaleString()} helper="All inbound leads" icon={Users} tone="blue" />
-              <KpiCard title="Qualified leads" value={activeReport.qualified_parent_leads.toLocaleString()} helper="Parent leads qualified" icon={Target} tone="amber" />
-              <KpiCard title="Paid sign-ups" value={activeReport.paid_sign_ups.toLocaleString()} helper="Converted students" icon={BadgeDollarSign} tone="green" />
+              <KpiCard title="Total leads" value={activeReport.total_leads_received.toLocaleString()} helper="All inbound leads" icon={Users} />
+              <KpiCard title="Qualified leads" value={activeReport.qualified_parent_leads.toLocaleString()} helper="Parent leads qualified" icon={Target} />
+              <KpiCard title="Paid sign-ups" value={activeReport.paid_sign_ups.toLocaleString()} helper="Converted students" icon={BadgeDollarSign} />
             </div>
 
             <div className="space-y-4">
@@ -543,10 +537,10 @@ export default function SalesLeadFunnelPage() {
           <CardContent className="h-[340px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={latestFunnelRows} layout="vertical" margin={{ top: 8, right: 18, left: 155, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="currentColor" className="text-muted-foreground/30" />
                 <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
                 <YAxis type="category" dataKey="stage" width={150} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))" }} />
                 <Bar dataKey="count" name="Count" radius={[0, 8, 8, 0]} barSize={26}>
                   {latestFunnelRows.map((entry, index) => (
                     <Cell key={entry.stage} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -570,7 +564,7 @@ export default function SalesLeadFunnelPage() {
                   ))}
                 </RadialBar>
                 <Legend iconSize={9} layout="vertical" verticalAlign="middle" align="right" />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))" }} formatter={(value) => `${Number(value ?? 0)}%`} />
               </RadialBarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -585,12 +579,12 @@ export default function SalesLeadFunnelPage() {
           <CardContent className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={historyRows} margin={{ top: 16, right: 12, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-200 dark:text-slate-800" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-muted-foreground/30" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))" }} />
                 <Legend />
-                <Line type="monotone" dataKey="leads" name="Leads" stroke={COLORS.blue} strokeWidth={3} />
+                <Line type="monotone" dataKey="leads" name="Leads" stroke={COLORS.primary} strokeWidth={3} />
                 <Line type="monotone" dataKey="qualified" name="Qualified" stroke={COLORS.amber} strokeWidth={3} />
                 <Line type="monotone" dataKey="trials" name="Trials Booked" stroke={COLORS.violet} strokeWidth={3} />
                 <Line type="monotone" dataKey="paid" name="Paid Sign-ups" stroke={COLORS.green} strokeWidth={3} />
@@ -611,7 +605,7 @@ export default function SalesLeadFunnelPage() {
                     <Cell key={entry.metric} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(148,163,184,.35)" }} formatter={(value) => `${Number(value ?? 0)}%`} />
+                <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid hsl(var(--border))" }} formatter={(value) => `${Number(value ?? 0)}%`} />
                 <Legend iconSize={9} />
               </PieChart>
             </ResponsiveContainer>
@@ -624,7 +618,7 @@ export default function SalesLeadFunnelPage() {
           <CardTitle className="text-base">Saved Funnel Reports</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[980px] text-left">
               <thead>
                 <tr>
@@ -640,7 +634,7 @@ export default function SalesLeadFunnelPage() {
                     "Trial → Paid %",
                     "Actions",
                   ].map((header) => (
-                    <th key={header} className="bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                    <th key={header} className="bg-muted px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
                       {header}
                     </th>
                   ))}
@@ -650,18 +644,18 @@ export default function SalesLeadFunnelPage() {
                 {reports.length ? (
                   reports.map((report) => (
                     <tr key={report.id}>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900 dark:border-slate-800 dark:text-white">{formatMonth(report.report_month)}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.total_leads_received}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.qualified_parent_leads}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.trials_booked}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.trials_conducted}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm font-bold text-emerald-600 dark:border-slate-800 dark:text-emerald-400">{report.paid_sign_ups}</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.lead_to_trial_percent}%</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.lead_to_paid_conversion_percent}%</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">{report.trial_to_paid_conversion_percent}%</td>
-                      <td className="border-t border-slate-100 px-4 py-3 text-sm dark:border-slate-800">
+                      <td className="border-t border-border px-4 py-3 text-sm font-semibold text-card-foreground">{formatMonth(report.report_month)}</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">{report.total_leads_received}</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">{report.qualified_parent_leads}</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">{report.trials_booked}</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">{report.trials_conducted}</td>
+                      <td className="border-t border-border px-4 py-3 text-sm font-bold text-emerald-600 dark:text-emerald-400">{report.paid_sign_ups}</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">{report.lead_to_trial_percent}%</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">{report.lead_to_paid_conversion_percent}%</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">{report.trial_to_paid_conversion_percent}%</td>
+                      <td className="border-t border-border px-4 py-3 text-sm">
                         <div className="flex gap-2">
-                          <Button onClick={() => setForm(reportToForm(report))} size="sm" variant="outline" className="rounded-full border-slate-200 dark:border-slate-800">
+                          <Button onClick={() => setForm(reportToForm(report))} size="sm" variant="outline" className="rounded-full border-border bg-card">
                             <Edit3 className="mr-1 h-3.5 w-3.5" /> Edit
                           </Button>
                           <Button onClick={() => deleteReport(report)} size="sm" variant="outline" disabled={deletingId === report.id} className="rounded-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30">
@@ -674,7 +668,7 @@ export default function SalesLeadFunnelPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={10} className="border-t border-slate-100 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                    <td colSpan={10} className="border-t border-border px-4 py-8 text-center text-sm text-muted-foreground">
                       No saved reports yet. Enter the first month above and click Save / Update Month.
                     </td>
                   </tr>
