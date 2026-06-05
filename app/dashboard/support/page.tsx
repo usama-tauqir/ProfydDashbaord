@@ -777,7 +777,7 @@ export default function AdminDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Button asChild variant="outline" className="h-auto justify-start py-3">
           <Link href="/dashboard/support/current-students">
             <UserPlus className="mr-2 h-4 w-4 text-blue-600" />
@@ -811,7 +811,7 @@ export default function AdminDashboardPage() {
 
 
         
-      </div>
+      </div>  */}
 
       {(stats.complaintsRaised > 0 || stats.pausedSubscriptions > 0) && (
         <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/30">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -70,6 +70,8 @@ import {
 } from "recharts"
 import { supabase } from "@/lib/supabase/client"
 import { format } from "date-fns"
+import ReactSelect from "react-select"
+import { Country, State } from "country-state-city"
 
 type StudentStatus = "active" | "on_break" | "reactivated" | "left_out"
 
@@ -129,6 +131,71 @@ interface FollowUp {
 const COLORS_CURRENT = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d"]
 const COLORS_LEFTOUT = ["#ef4444", "#f59e0b", "#3b82f6", "#10b981", "#8b5cf6"]
 const COLORS_FOLLOWUP = ["#f59e0b", "#3b82f6", "#10b981", "#ef4444", "#8b5cf6"]
+
+type SelectOption = {
+  value: string
+  label: string
+}
+
+const LEARNING_PLAN_OPTIONS = ["1x/week", "2x/week", "3x/week", "4x/week"]
+const CLASSES_PER_WEEK_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1)
+
+function getCountryOptions(): SelectOption[] {
+  return Country.getAllCountries().map((country) => ({
+    value: country.isoCode,
+    label: country.name,
+  }))
+}
+
+function getCountryIsoCode(countryValue?: string | null) {
+  if (!countryValue) return ""
+
+  const countries = Country.getAllCountries()
+  const foundCountry = countries.find(
+    (country) =>
+      country.isoCode.toLowerCase() === countryValue.toLowerCase() ||
+      country.name.toLowerCase() === countryValue.toLowerCase()
+  )
+
+  return foundCountry?.isoCode || ""
+}
+
+function getCountryLabel(countryValue?: string | null) {
+  if (!countryValue) return ""
+
+  const countries = Country.getAllCountries()
+  const foundCountry = countries.find(
+    (country) =>
+      country.isoCode.toLowerCase() === countryValue.toLowerCase() ||
+      country.name.toLowerCase() === countryValue.toLowerCase()
+  )
+
+  return foundCountry?.name || countryValue
+}
+
+function getStateOptions(countryValue?: string | null): SelectOption[] {
+  const countryIsoCode = getCountryIsoCode(countryValue)
+  if (!countryIsoCode) return []
+
+  return State.getStatesOfCountry(countryIsoCode).map((state) => ({
+    value: state.name,
+    label: state.name,
+  }))
+}
+
+const reactSelectClassNames = {
+  control: () =>
+    "min-h-10 rounded-md border border-[#303a3a] bg-[#060909] px-3 text-sm text-white shadow-sm transition hover:border-[#5b6470] focus-within:border-violet-500",
+  input: () => "text-sm text-white",
+  placeholder: () => "text-slate-500",
+  singleValue: () => "text-white",
+  menu: () => "z-[80] mt-2 overflow-hidden rounded-lg border border-[#303a3a] bg-[#0d1218] text-white shadow-2xl",
+  option: ({ isFocused, isSelected }: { isFocused: boolean; isSelected: boolean }) =>
+    `cursor-pointer px-3 py-2 text-sm ${
+      isSelected || isFocused ? "bg-violet-600 text-white" : "bg-[#0d1218] text-slate-200"
+    }`,
+}
+
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
@@ -988,6 +1055,9 @@ export default function StudentsHubPage() {
         student_id: newId,
         status: "active",
         country: "Australia",
+        state: "",
+        learning_plan: "1x/week",
+        classes_per_week: 1,
       })
     } else {
       setStudentForm({})
@@ -1074,15 +1144,15 @@ export default function StudentsHubPage() {
                   </Button>
                 </DialogTrigger>
 
-                <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Student</DialogTitle>
-                  </DialogHeader>
-
+                <DialogContent className="w-[calc(100vw-1rem)] !max-w-[1152px] max-h-[92vh] overflow-hidden border-0 bg-[#111717] p-0 text-white shadow-2xl sm:w-[calc(100vw-2rem)]">
                   <StudentForm
+                    title="Add New Student"
+                    subtitle="Add one student record. The dashboard will automatically calculate active students, class load, follow-ups and reactivation."
+                    submitLabel="Save Student"
                     formData={studentForm}
                     setFormData={setStudentForm}
                     onSubmit={handleAddStudent}
+                    onCancel={() => setIsAddStudentOpen(false)}
                     readonlyId
                   />
                 </DialogContent>
@@ -1339,15 +1409,15 @@ export default function StudentsHubPage() {
           </div>
 
           <Dialog open={isEditStudentOpen} onOpenChange={setIsEditStudentOpen}>
-            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Edit Student</DialogTitle>
-              </DialogHeader>
-
+            <DialogContent className="w-[calc(100vw-1rem)] !max-w-[1152px] max-h-[92vh] overflow-hidden border-0 bg-[#111717] p-0 text-white shadow-2xl sm:w-[calc(100vw-2rem)]">
               <StudentForm
+                title="Edit Student"
+                subtitle="Update the student record. Active students, weekly class load, follow-ups and reactivation data stay connected."
+                submitLabel="Update Student"
                 formData={studentForm}
                 setFormData={setStudentForm}
                 onSubmit={handleUpdateStudent}
+                onCancel={() => setIsEditStudentOpen(false)}
                 readonlyId
               />
             </DialogContent>
@@ -1924,13 +1994,32 @@ function StudentForm({
   setFormData,
   onSubmit,
   readonlyId = false,
+  title = "Add New Student",
+  subtitle = "Add one student record. The dashboard will automatically calculate active students, class load, follow-ups and reactivation.",
+  submitLabel = "Save Student",
+  onCancel,
 }: {
   formData: Partial<CurrentStudent>
   setFormData: (data: Partial<CurrentStudent>) => void
   onSubmit: () => void
   readonlyId?: boolean
+  title?: string
+  subtitle?: string
+  submitLabel?: string
+  onCancel?: () => void
 }) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const countryOptions = useMemo(() => getCountryOptions(), [])
+  const stateOptions = useMemo(() => getStateOptions(formData.country), [formData.country])
+
+  const selectedCountry = countryOptions.find(
+    (country) =>
+      country.value.toLowerCase() === String(formData.country || "").toLowerCase() ||
+      country.label.toLowerCase() === String(formData.country || "").toLowerCase()
+  )
+
+  const selectedState = stateOptions.find((state) => state.value === formData.state)
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
 
     if (type === "number") {
@@ -1940,210 +2029,454 @@ function StudentForm({
     }
   }
 
+  const inputClass =
+    "h-10 border-[#303a3a] bg-[#060909] text-white placeholder:text-slate-500 focus-visible:ring-violet-500/35"
+  const selectTriggerClass =
+    "h-10 border-[#303a3a] bg-[#060909] text-white focus:ring-violet-500/35"
+  const labelClass = "mb-2 block text-xs font-medium text-slate-400"
+  const panelClass = "rounded-xl border border-[#2b3434] bg-[#151b1b] p-4 shadow-sm"
+  const previewCardClass = "rounded-lg bg-[#0f1222] p-3"
+
+  const statusLabel: Record<string, string> = {
+    active: "Active",
+    on_break: "On Break",
+    reactivated: "Reactivated",
+    left_out: "Left Out",
+  }
+
+  const locationText =
+    [selectedState?.label || formData.state, selectedCountry?.label || getCountryLabel(formData.country)]
+      .filter(Boolean)
+      .join(", ") || "—"
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
         onSubmit()
       }}
-      className="grid gap-4 py-4"
+      className="w-full min-w-0 overflow-hidden rounded-xl bg-[#111717] text-white"
     >
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="student_id">Student ID *</Label>
-          <Input
-            id="student_id"
-            name="student_id"
-            value={formData.student_id || ""}
-            onChange={handleChange}
-            placeholder="e.g., AU-0001-AZA"
-            readOnly={readonlyId}
-            className={readonlyId ? "bg-muted" : ""}
-            required
-          />
-        </div>
+      <div className="bg-gradient-to-r from-violet-600 via-indigo-500 to-sky-600 px-5 py-4 pr-12">
+        <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+          <Plus className="h-5 w-5" />
+          {title}
+        </DialogTitle>
+        <p className="mt-1 text-sm text-white/90">{subtitle}</p>
+      </div>
 
-        <div>
-          <Label htmlFor="student_name">Student Name *</Label>
-          <Input
-            id="student_name"
-            name="student_name"
-            value={formData.student_name || ""}
-            onChange={handleChange}
-            required
-          />
-        </div>
+      <div className="max-h-[calc(92vh-135px)] overflow-x-hidden overflow-y-auto p-5">
+        <div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_350px]">
+          <div className="min-w-0 space-y-5">
+            <section className={panelClass}>
+              <div className="mb-4 flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-violet-500" />
+                <h3 className="text-sm font-semibold text-white">Student Details</h3>
+              </div>
 
-        <div>
-          <Label htmlFor="parent_name">Parent Name *</Label>
-          <Input
-            id="parent_name"
-            name="parent_name"
-            value={formData.parent_name || ""}
-            onChange={handleChange}
-            required
-          />
-        </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="student_id" className={labelClass}>
+                    Student ID *
+                  </Label>
+                  <Input
+                    id="student_id"
+                    name="student_id"
+                    value={formData.student_id || ""}
+                    onChange={handleChange}
+                    placeholder="e.g., AU-0001-AZA"
+                    readOnly={readonlyId}
+                    className={`${inputClass} ${readonlyId ? "cursor-not-allowed opacity-75" : ""}`}
+                    required
+                  />
+                </div>
 
-        <div>
-          <Label htmlFor="country">Country</Label>
-          <Input
-            id="country"
-            name="country"
-            value={formData.country || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label htmlFor="student_name" className={labelClass}>
+                    Student Name *
+                  </Label>
+                  <Input
+                    id="student_name"
+                    name="student_name"
+                    value={formData.student_name || ""}
+                    onChange={handleChange}
+                    placeholder="Student full name"
+                    className={inputClass}
+                    required
+                  />
+                </div>
 
-        <div>
-          <Label htmlFor="state">State</Label>
-          <Input
-            id="state"
-            name="state"
-            value={formData.state || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label htmlFor="parent_name" className={labelClass}>
+                    Parent Name *
+                  </Label>
+                  <Input
+                    id="parent_name"
+                    name="parent_name"
+                    value={formData.parent_name || ""}
+                    onChange={handleChange}
+                    placeholder="Parent / guardian name"
+                    className={inputClass}
+                    required
+                  />
+                </div>
 
-        <div>
-          <Label htmlFor="grade_year">Grade Year</Label>
-          <Input
-            id="grade_year"
-            name="grade_year"
-            value={formData.grade_year || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label htmlFor="start_date" className={labelClass}>
+                    Start Date
+                  </Label>
+                  <Input
+                    id="start_date"
+                    name="start_date"
+                    type="date"
+                    value={formData.start_date || ""}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
 
-        <div className="col-span-2">
-          <Label htmlFor="learning_plan">Learning Plan / Package</Label>
-          <Input
-            id="learning_plan"
-            name="learning_plan"
-            value={formData.learning_plan || ""}
-            onChange={handleChange}
-            placeholder="1x/week, 2x/week, 3x/week, 4x/week"
-          />
-        </div>
+                <div>
+                  <Label htmlFor="country" className={labelClass}>
+                    Country
+                  </Label>
+                  <ReactSelect
+                    inputId="country"
+                    instanceId="country-select"
+                    options={countryOptions}
+                    value={selectedCountry || null}
+                    placeholder="Search and select country..."
+                    isSearchable
+                    classNames={reactSelectClassNames}
+                    unstyled
+                    onChange={(selected) =>
+                      setFormData({
+                        ...formData,
+                        country: selected?.label || "",
+                        state: "",
+                      })
+                    }
+                  />
+                </div>
 
-        <div>
-          <Label htmlFor="classes_per_week">Classes Per Week</Label>
-          <Input
-            id="classes_per_week"
-            name="classes_per_week"
-            type="number"
-            min="0"
-            value={formData.classes_per_week || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label htmlFor="state" className={labelClass}>
+                    State
+                  </Label>
+                  <ReactSelect
+                    inputId="state"
+                    instanceId="state-select"
+                    options={stateOptions}
+                    value={selectedState || null}
+                    placeholder={formData.country ? "Search and select state..." : "Select country first"}
+                    isSearchable
+                    isDisabled={!formData.country || stateOptions.length === 0}
+                    classNames={reactSelectClassNames}
+                    unstyled
+                    onChange={(selected) =>
+                      setFormData({
+                        ...formData,
+                        state: selected?.value || "",
+                      })
+                    }
+                  />
+                </div>
 
-        <div>
-          <Label htmlFor="start_date">Start Date</Label>
-          <Input
-            id="start_date"
-            name="start_date"
-            type="date"
-            value={formData.start_date || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label htmlFor="grade_year" className={labelClass}>
+                    Grade Year
+                  </Label>
+                  <Input
+                    id="grade_year"
+                    name="grade_year"
+                    value={formData.grade_year || ""}
+                    onChange={handleChange}
+                    placeholder="e.g., Grade 7 / Year 8"
+                    className={inputClass}
+                  />
+                </div>
 
-        <div>
-          <Label>Status</Label>
-          <Select
-            value={formData.status || "active"}
-            onValueChange={(value) => setFormData({ ...formData, status: value as StudentStatus })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="on_break">On Break</SelectItem>
-              <SelectItem value="reactivated">Reactivated</SelectItem>
-              <SelectItem value="left_out">Left Out</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+                <div>
+                  <Label className={labelClass}>Status</Label>
+                  <Select
+                    value={formData.status || "active"}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as StudentStatus })}
+                  >
+                    <SelectTrigger className={selectTriggerClass}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="on_break">On Break</SelectItem>
+                      <SelectItem value="reactivated">Reactivated</SelectItem>
+                      <SelectItem value="left_out">Left Out</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
 
-        <div>
-          <Label htmlFor="break_start_date">Break Start Date</Label>
-          <Input
-            id="break_start_date"
-            name="break_start_date"
-            type="date"
-            value={formData.break_start_date || ""}
-            onChange={handleChange}
-          />
-        </div>
+            <section className={panelClass}>
+              <div className="mb-4 flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-violet-500" />
+                <h3 className="text-sm font-semibold text-white">Learning Plan & Staff Assignment</h3>
+              </div>
 
-        <div>
-          <Label htmlFor="break_end_date">Break End Date</Label>
-          <Input
-            id="break_end_date"
-            name="break_end_date"
-            type="date"
-            value={formData.break_end_date || ""}
-            onChange={handleChange}
-          />
-        </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label className={labelClass}>Learning Plan / Package</Label>
+                  <Select
+                    value={formData.learning_plan || ""}
+                    onValueChange={(value) => setFormData({ ...formData, learning_plan: value })}
+                  >
+                    <SelectTrigger className={selectTriggerClass}>
+                      <SelectValue placeholder="Select learning plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LEARNING_PLAN_OPTIONS.map((plan) => (
+                        <SelectItem key={plan} value={plan}>
+                          {plan}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <div>
-          <Label htmlFor="reactivated_at">Reactivated Date</Label>
-          <Input
-            id="reactivated_at"
-            name="reactivated_at"
-            type="date"
-            value={formData.reactivated_at || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label className={labelClass}>Classes Per Week</Label>
+                  <Select
+                    value={formData.classes_per_week ? String(formData.classes_per_week) : ""}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, classes_per_week: Number(value) })
+                    }
+                  >
+                    <SelectTrigger className={selectTriggerClass}>
+                      <SelectValue placeholder="Select classes per week" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLASSES_PER_WEEK_OPTIONS.map((count) => (
+                        <SelectItem key={count} value={String(count)}>
+                          {count}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <div>
-          <Label htmlFor="sales_person">Sales Person</Label>
-          <Input
-            id="sales_person"
-            name="sales_person"
-            value={formData.sales_person || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label htmlFor="sales_person" className={labelClass}>
+                    Sales Person
+                  </Label>
+                  <Input
+                    id="sales_person"
+                    name="sales_person"
+                    value={formData.sales_person || ""}
+                    onChange={handleChange}
+                    placeholder="Sales person name"
+                    className={inputClass}
+                  />
+                </div>
 
-        <div>
-          <Label htmlFor="telecaller">Telecaller</Label>
-          <Input
-            id="telecaller"
-            name="telecaller"
-            value={formData.telecaller || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div>
+                  <Label htmlFor="telecaller" className={labelClass}>
+                    Telecaller
+                  </Label>
+                  <Input
+                    id="telecaller"
+                    name="telecaller"
+                    value={formData.telecaller || ""}
+                    onChange={handleChange}
+                    placeholder="Telecaller name"
+                    className={inputClass}
+                  />
+                </div>
 
-        <div>
-          <Label htmlFor="refer_by">Refer By</Label>
-          <Input
-            id="refer_by"
-            name="refer_by"
-            value={formData.refer_by || ""}
-            onChange={handleChange}
-          />
-        </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="refer_by" className={labelClass}>
+                    Refer By
+                  </Label>
+                  <Input
+                    id="refer_by"
+                    name="refer_by"
+                    value={formData.refer_by || ""}
+                    onChange={handleChange}
+                    placeholder="Referral source / person"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </section>
 
-        <div className="col-span-2">
-          <Label htmlFor="notes">Notes</Label>
-          <Input
-            id="notes"
-            name="notes"
-            value={formData.notes || ""}
-            onChange={handleChange}
-            placeholder="Break reason, parent request, leaving note, etc."
-          />
+            <section className={panelClass}>
+              <div className="mb-4 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-violet-500" />
+                <h3 className="text-sm font-semibold text-white">Break, Reactivation & Notes</h3>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <Label htmlFor="break_start_date" className={labelClass}>
+                    Break Start Date
+                  </Label>
+                  <Input
+                    id="break_start_date"
+                    name="break_start_date"
+                    type="date"
+                    value={formData.break_start_date || ""}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="break_end_date" className={labelClass}>
+                    Break End Date
+                  </Label>
+                  <Input
+                    id="break_end_date"
+                    name="break_end_date"
+                    type="date"
+                    value={formData.break_end_date || ""}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="reactivated_at" className={labelClass}>
+                    Reactivated Date
+                  </Label>
+                  <Input
+                    id="reactivated_at"
+                    name="reactivated_at"
+                    type="date"
+                    value={formData.reactivated_at || ""}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <Label htmlFor="notes" className={labelClass}>
+                    Notes
+                  </Label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes || ""}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Break reason, parent request, reactivation note, leaving note, etc."
+                    className="min-h-20 w-full rounded-md border border-[#303a3a] bg-[#060909] px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside className="min-w-0 space-y-4">
+            <section className="rounded-xl border border-[#26304a] bg-[#151827] p-4 shadow-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <Search className="h-4 w-4 text-violet-500" />
+                <h3 className="text-sm font-semibold text-white">Student Preview</h3>
+              </div>
+
+              <div className="space-y-3">
+                <div className={previewCardClass}>
+                  <p className="text-xs text-slate-400">Student</p>
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    {formData.student_name || "New student"}
+                  </p>
+                  <p className="mt-1 font-mono text-xs text-slate-400">
+                    {formData.student_id || "—"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className={previewCardClass}>
+                    <p className="text-xs text-slate-400">Parent</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-white">
+                      {formData.parent_name || "—"}
+                    </p>
+                  </div>
+
+                  <div className={previewCardClass}>
+                    <p className="text-xs text-slate-400">Status</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {statusLabel[formData.status || "active"] || "Active"}
+                    </p>
+                  </div>
+
+                  <div className={previewCardClass}>
+                    <p className="text-xs text-slate-400">Grade</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {formData.grade_year || "—"}
+                    </p>
+                  </div>
+
+                  <div className={previewCardClass}>
+                    <p className="text-xs text-slate-400">Classes</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {formData.classes_per_week || 0}/week
+                    </p>
+                  </div>
+                </div>
+
+                <div className={previewCardClass}>
+                  <p className="text-xs text-slate-400">Location</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{locationText}</p>
+                </div>
+
+                <div className={previewCardClass}>
+                  <p className="text-xs text-slate-400">Learning Plan</p>
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    {formData.learning_plan || "—"}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-[#2b3434] bg-[#151b1b] p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-white">Why this helps student operations</h3>
+
+              <div className="mt-4 space-y-4 text-sm text-slate-300">
+                <div className="flex gap-3">
+                  <Users className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                  <p>Active student count stays clear for daily operations.</p>
+                </div>
+
+                <div className="flex gap-3">
+                  <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                  <p>Classes per week are calculated for workload planning.</p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                  <p>Start, break and reactivation dates remain trackable.</p>
+                </div>
+
+                <div className="flex gap-3">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                  <p>Follow-up and left-out records stay easier to manage.</p>
+                </div>
+              </div>
+            </section>
+          </aside>
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit">Save</Button>
+      <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[#253030] bg-[#111717]/95 px-5 py-4 backdrop-blur">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="border-[#3b4545] bg-[#1b2222] text-white hover:bg-[#242d2d] hover:text-white"
+        >
+          Cancel
+        </Button>
+        <Button type="submit" className="bg-blue-700 text-white hover:bg-blue-600">
+          <Plus className="mr-2 h-4 w-4" />
+          {submitLabel}
+        </Button>
       </div>
     </form>
   )

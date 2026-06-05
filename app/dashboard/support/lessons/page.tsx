@@ -62,6 +62,10 @@ type Teacher = {
   name: string;
   sort_order: number;
   is_active: boolean;
+  // Teacher visibility is timeline-based now.
+  // A teacher appears from effective_from_month and disappears from effective_to_month onward.
+  effective_from_month?: string | null;
+  effective_to_month?: string | null;
 };
 
 type DailyRecord = {
@@ -121,15 +125,33 @@ const MONTH_SHORT = [
   "Dec",
 ];
 
-const START_MONTH_KEY = "2026-03";
-const END_MONTH_KEY = "2027-12";
+// Teacher names are stored with a month timeline.
+// Add in a month = visible from that month and all future months.
+// Remove in a month = hidden from that month and future months, while previous saved months stay safe.
+const YEAR_SELECT_START = 2020;
+const YEARS_AHEAD_IN_FILTER = 10;
+const DEFAULT_EFFECTIVE_FROM_MONTH = "0000-01";
 
 const DEFAULT_TEACHERS: Teacher[] = ALL_KEYS.map((id, index) => ({
   id,
   name: LABEL_MAP[id] || id,
   sort_order: index,
   is_active: true,
+  effective_from_month: DEFAULT_EFFECTIVE_FROM_MONTH,
+  effective_to_month: null,
 }));
+
+function defaultTeachersForUser(userId: string): Teacher[] {
+  return DEFAULT_TEACHERS.map((teacher, index) => ({
+    ...teacher,
+    portal_user: userId,
+    sort_order: index,
+    is_active: teacher.is_active !== false,
+    effective_from_month: teacher.effective_from_month || DEFAULT_EFFECTIVE_FROM_MONTH,
+    effective_to_month: teacher.effective_to_month || null,
+  }));
+}
+
 function makeUniqueTeachers(list: Teacher[], userId: string): Teacher[] {
   const used = new Set<string>();
 
@@ -152,8 +174,35 @@ function makeUniqueTeachers(list: Teacher[], userId: string): Teacher[] {
       name: teacher.name || `Teacher ${index + 1}`,
       sort_order: index,
       is_active: teacher.is_active !== false,
+      effective_from_month: teacher.effective_from_month || DEFAULT_EFFECTIVE_FROM_MONTH,
+      effective_to_month: teacher.effective_to_month || null,
     };
   });
+}
+
+function isTeacherVisibleInMonth(teacher: Teacher, monthKey: string) {
+  if (teacher.is_active === false) return false;
+
+  const fromMonth = teacher.effective_from_month || DEFAULT_EFFECTIVE_FROM_MONTH;
+  const toMonth = teacher.effective_to_month;
+
+  return fromMonth <= monthKey && (!toMonth || monthKey < toMonth);
+}
+
+function teachersForMonth(list: Teacher[], monthKey: string) {
+  return list.filter((teacher) => isTeacherVisibleInMonth(teacher, monthKey));
+}
+
+function getTeacherTimelineStatus(teacher: Teacher, monthKey: string) {
+  if (isTeacherVisibleInMonth(teacher, monthKey)) return "Visible this month";
+
+  const fromMonth = teacher.effective_from_month || DEFAULT_EFFECTIVE_FROM_MONTH;
+  const toMonth = teacher.effective_to_month;
+
+  if (monthKey < fromMonth) return `Starts from ${getMonthLabel(fromMonth)}`;
+  if (toMonth && monthKey >= toMonth) return `Removed from ${getMonthLabel(toMonth)}`;
+
+  return "Not visible this month";
 }
 
 function pad(n: number) {
@@ -206,25 +255,27 @@ function getMonthRange(monthKey: string) {
   return `${dateLabel(start)} → ${dateLabel(end)}`;
 }
 
-function makeMonthKeys(startKey = START_MONTH_KEY, endKey = END_MONTH_KEY) {
-  const start = parseMonthKey(startKey);
-  const end = parseMonthKey(endKey);
-  const keys: string[] = [];
+function monthKeyFromParts(year: number, monthIndex: number) {
+  return `${year}-${pad(monthIndex + 1)}`;
+}
 
-  let y = start.year;
-  let m = start.monthIndex;
+function addMonthsToMonthKey(monthKey: string, amount: number) {
+  const { year, monthIndex } = parseMonthKey(monthKey);
+  const d = new Date(year, monthIndex + amount, 1);
+  return monthKeyFromParts(d.getFullYear(), d.getMonth());
+}
 
-  while (y < end.year || (y === end.year && m <= end.monthIndex)) {
-    keys.push(`${y}-${pad(m + 1)}`);
-    m += 1;
+function makeYearOptions(selectedYear: number) {
+  const currentYear = new Date().getFullYear();
+  const start = Math.min(YEAR_SELECT_START, selectedYear - 2);
+  const end = Math.max(currentYear + YEARS_AHEAD_IN_FILTER, selectedYear + 2);
+  const years: number[] = [];
 
-    if (m > 11) {
-      m = 0;
-      y += 1;
-    }
+  for (let year = end; year >= start; year -= 1) {
+    years.push(year);
   }
 
-  return keys.reverse();
+  return years;
 }
 
 function datesForMonth(monthKey: string) {
@@ -240,10 +291,8 @@ function datesForMonth(monthKey: string) {
   return dates;
 }
 
-function currentMonthKey(months: string[]) {
-  const todayKey = getCycleKeyFromDate(new Date());
-  if (months.includes(todayKey)) return todayKey;
-  return months[months.length - 1] || START_MONTH_KEY;
+function currentMonthKey() {
+  return getCycleKeyFromDate(new Date());
 }
 
 function slugify(value: string) {
@@ -477,10 +526,8 @@ function EditableCell({
 }
 
 export default function AdvancedClassPortalPage() {
-  const monthKeys = useMemo(() => makeMonthKeys(), []);
-
   const [selectedUser, setSelectedUser] = useState(PORTAL_USERS[0].id);
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey(monthKeys));
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [selectedTeacher, setSelectedTeacher] = useState("all");
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [deletingTeacherId, setDeletingTeacherId] = useState<string | null>(null);
@@ -507,20 +554,54 @@ export default function AdvancedClassPortalPage() {
   const currentUser =
     PORTAL_USERS.find((user) => user.id === selectedUser) || PORTAL_USERS[0];
 
+  const selectedMonthParts = useMemo(
+    () => parseMonthKey(selectedMonth),
+    [selectedMonth],
+  );
+
+  const yearOptions = useMemo(
+    () => makeYearOptions(selectedMonthParts.year),
+    [selectedMonthParts.year],
+  );
+
+  const changeSelectedMonth = useCallback(
+    (nextMonthKey: string) => {
+      if (
+        isDirty &&
+        !confirm("You have unsaved changes. Discard them and switch month?")
+      ) {
+        return;
+      }
+
+      setSelectedMonth(nextMonthKey);
+      setLogs([]);
+    },
+    [isDirty],
+  );
+
   const allTeachers = useMemo(
     () => teachers.slice().sort((a, b) => a.sort_order - b.sort_order),
     [teachers],
   );
 
   const activeTeachers = useMemo(
-    () => allTeachers.filter((teacher) => teacher.is_active),
-    [allTeachers],
+    () => teachersForMonth(allTeachers, selectedMonth),
+    [allTeachers, selectedMonth],
   );
 
   const visibleTeachers =
     selectedTeacher === "all"
       ? activeTeachers
-      : allTeachers.filter((teacher) => teacher.id === selectedTeacher);
+      : activeTeachers.filter((teacher) => teacher.id === selectedTeacher);
+
+  useEffect(() => {
+    if (
+      selectedTeacher !== "all" &&
+      !activeTeachers.some((teacher) => teacher.id === selectedTeacher)
+    ) {
+      setSelectedTeacher("all");
+    }
+  }, [activeTeachers, selectedTeacher]);
 
   useEffect(() => {
     const userParam = new URLSearchParams(window.location.search)
@@ -595,7 +676,7 @@ export default function AdvancedClassPortalPage() {
   const fetchTeachers = useCallback(async () => {
     const { data, error } = await supabase
       .from("class_portal_teachers")
-      .select("portal_user,id,name,sort_order,is_active")
+      .select("portal_user,id,name,sort_order,is_active,effective_from_month,effective_to_month")
       .eq("portal_user", selectedUser)
       .order("sort_order", { ascending: true });
 
@@ -609,18 +690,43 @@ export default function AdvancedClassPortalPage() {
 
       setTeachers([]);
       setStatus(
-        `Teacher table read failed: ${error.message || "Please check the Supabase teacher table."
-        }`,
+        `Teacher table read failed: ${error.message || "Please check the Supabase teacher table."}`,
       );
 
       return [];
     }
 
-    const normalized = makeUniqueTeachers((data || []) as Teacher[], selectedUser);
+    let normalized = makeUniqueTeachers((data || []) as Teacher[], selectedUser);
+
+    // First-time setup only: seed the teacher master list once for this portal user.
+    // After this, teachers live in class_portal_teachers and are reused for every month/year.
+    if (normalized.length === 0 && DEFAULT_TEACHERS.length > 0) {
+      const seeded = defaultTeachersForUser(selectedUser);
+
+      const { error: seedError } = await supabase.from("class_portal_teachers").upsert(
+        seeded.map((teacher, index) => ({
+          portal_user: selectedUser,
+          id: teacher.id,
+          name: teacher.name,
+          sort_order: index,
+          is_active: teacher.is_active !== false,
+          effective_from_month: teacher.effective_from_month || DEFAULT_EFFECTIVE_FROM_MONTH,
+          effective_to_month: teacher.effective_to_month || null,
+          updated_at: new Date().toISOString(),
+        })),
+        { onConflict: "portal_user,id" },
+      );
+
+      if (!seedError) {
+        normalized = makeUniqueTeachers(seeded, selectedUser);
+      } else {
+        console.warn("Default teacher seed failed.", seedError);
+      }
+    }
 
     setTeachers(normalized);
     return normalized;
-  }, [selectedUser]);;
+  }, [selectedUser]);
 
   const fetchMonthRecords = useCallback(
     async (userId: string, monthKey: string, teacherList: Teacher[]) => {
@@ -700,7 +806,11 @@ export default function AdvancedClassPortalPage() {
 
   const refreshAll = useCallback(async () => {
     const loadedTeachers = await fetchTeachers();
-    await fetchMonthRecords(selectedUser, selectedMonth, loadedTeachers);
+    await fetchMonthRecords(
+      selectedUser,
+      selectedMonth,
+      teachersForMonth(loadedTeachers, selectedMonth),
+    );
   }, [fetchMonthRecords, fetchTeachers, selectedMonth, selectedUser]);
 
   useEffect(() => {
@@ -736,7 +846,11 @@ export default function AdvancedClassPortalPage() {
             `Database ${String(payload.eventType || "change").toLowerCase()} detected`,
           );
 
-          await fetchMonthRecords(selectedUser, selectedMonth, teachers);
+          await fetchMonthRecords(
+            selectedUser,
+            selectedMonth,
+            teachersForMonth(teachers, selectedMonth),
+          );
         },
       )
       .on(
@@ -819,12 +933,17 @@ export default function AdvancedClassPortalPage() {
   };
 
   const saveTeachers = async (nextTeachers = teachers) => {
-    const cleaned = nextTeachers.map((teacher, index) => ({
+    // This saves the teacher timeline, not a monthly copy.
+    // A teacher added in the selected month appears from this month onward only.
+    // Previous months will not receive newly-added teachers.
+    const cleaned = makeUniqueTeachers(nextTeachers, selectedUser).map((teacher, index) => ({
       portal_user: selectedUser,
       id: teacher.id,
       name: teacher.name.trim() || `Teacher ${index + 1}`,
       sort_order: index,
       is_active: teacher.is_active !== false,
+      effective_from_month: teacher.effective_from_month || DEFAULT_EFFECTIVE_FROM_MONTH,
+      effective_to_month: teacher.effective_to_month || null,
       updated_at: new Date().toISOString(),
     }));
 
@@ -839,10 +958,14 @@ export default function AdvancedClassPortalPage() {
       return;
     }
 
-    setRows((prev) => prev.map((row) => normalizeRecord(row, cleaned)));
-    setStatus("Teacher list updated. Existing records remain safe.");
-    notifyChange("Teacher list was updated.");
-    addLog(null, null, "teachers", "Teacher list updated");
+    const monthTeachers = teachersForMonth(cleaned, selectedMonth);
+
+    setRows((prev) => prev.map((row) => normalizeRecord(row, monthTeachers)));
+    setStatus(
+      "Teacher timeline updated. New teachers start from the selected month and future months only.",
+    );
+    notifyChange("Teacher timeline was updated.");
+    addLog(null, null, "teachers", "Teacher timeline updated");
   };
 
   const saveTeacherForm = async () => {
@@ -885,6 +1008,8 @@ export default function AdvancedClassPortalPage() {
         name,
         sort_order: teachers.length,
         is_active: true,
+        effective_from_month: selectedMonth,
+        effective_to_month: null,
       },
     ];
 
@@ -902,7 +1027,9 @@ export default function AdvancedClassPortalPage() {
 
   const deleteTeacher = async (teacher: Teacher) => {
     const confirmed = confirm(
-      `Remove "${teacher.name}" from ${currentUser.displayName}'s teacher list? This will also remove this teacher's saved values from this user's records.`,
+      `Remove "${teacher.name}" from ${currentUser.displayName} starting ${getMonthLabel(
+        selectedMonth,
+      )}? Previous saved months will stay safe.`,
     );
 
     if (!confirmed) return;
@@ -911,32 +1038,24 @@ export default function AdvancedClassPortalPage() {
     setStatus(null);
 
     try {
-      const { data: deletedRows, error: deleteTeacherError } = await supabase
+      const { error: updateTeacherError } = await supabase
         .from("class_portal_teachers")
-        .delete()
+        .update({
+          effective_to_month: selectedMonth,
+          updated_at: new Date().toISOString(),
+        })
         .eq("portal_user", selectedUser)
-        .eq("id", teacher.id)
-        .select("id,name");
+        .eq("id", teacher.id);
 
-      if (deleteTeacherError) {
-        throw deleteTeacherError;
-      }
-
-      if (!deletedRows || deletedRows.length === 0) {
-        setStatus(
-          `No teacher was deleted. Please check if "${teacher.name}" exists for ${currentUser.displayName}.`,
-        );
-        return;
-      }
+      if (updateTeacherError) throw updateTeacherError;
 
       const { data: savedRecords, error: readRecordsError } = await supabase
         .from("class_portal_records")
-        .select("id,data")
-        .eq("portal_user", selectedUser);
+        .select("id,data,month_key")
+        .eq("portal_user", selectedUser)
+        .gte("month_key", selectedMonth);
 
-      if (readRecordsError) {
-        throw readRecordsError;
-      }
+      if (readRecordsError) throw readRecordsError;
 
       await Promise.all(
         (savedRecords || []).map((record: any) => {
@@ -961,7 +1080,14 @@ export default function AdvancedClassPortalPage() {
         }),
       );
 
-      const nextTeachers = teachers.filter((item) => item.id !== teacher.id);
+      const nextTeachers = teachers.map((item) =>
+        item.id === teacher.id
+          ? {
+            ...item,
+            effective_to_month: selectedMonth,
+          }
+          : item,
+      );
 
       setTeachers(nextTeachers);
 
@@ -990,12 +1116,21 @@ export default function AdvancedClassPortalPage() {
       }
 
       setStatus(
-        `Teacher "${teacher.name}" was removed from ${currentUser.displayName}.`,
+        `Teacher "${teacher.name}" was removed from ${getMonthLabel(
+          selectedMonth,
+        )} and all future months. Previous months remain safe.`,
       );
       notifyChange(
-        `Teacher "${teacher.name}" was removed from ${currentUser.displayName}.`,
+        `Teacher "${teacher.name}" was removed from ${getMonthLabel(
+          selectedMonth,
+        )} onward.`,
       );
-      addLog(null, null, "teachers", `Teacher removed: ${teacher.name}`);
+      addLog(
+        null,
+        null,
+        "teachers",
+        `Teacher removed from ${getMonthLabel(selectedMonth)} onward: ${teacher.name}`,
+      );
     } catch (error: any) {
       setStatus(`Teacher remove failed: ${error?.message || "Unknown error"}`);
     } finally {
@@ -1204,8 +1339,8 @@ export default function AdvancedClassPortalPage() {
           </div>
           <p className="mt-1 text-muted-foreground">
             Zainab, Aniqa, and Bilal can update their daily class records from
-            their own portal. The calendar starts from 25-Mar-2026 and continues
-            through 2027.
+            their own portal. Teacher columns now follow a month timeline: add
+            from the selected month onward, and remove from the selected month onward.
           </p>
         </div>
 
@@ -1222,7 +1357,7 @@ export default function AdvancedClassPortalPage() {
 
       <Card>
         <CardContent className="p-4">
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)]">
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase text-muted-foreground">
                 User Portal
@@ -1252,34 +1387,62 @@ export default function AdvancedClassPortalPage() {
               </select>
             </label>
 
-            <label className="space-y-1">
+            <div className="space-y-1">
               <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Month Filter
               </span>
-              <select
-                value={selectedMonth}
-                onChange={(e) => {
-                  if (
-                    isDirty &&
-                    !confirm(
-                      "You have unsaved changes. Discard them and switch month?",
-                    )
-                  ) {
-                    return;
-                  }
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-[auto_minmax(0,1fr)_110px_auto]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 px-3"
+                  onClick={() => changeSelectedMonth(addMonthsToMonthKey(selectedMonth, -1))}
+                >
+                  Previous
+                </Button>
 
-                  setSelectedMonth(e.target.value);
-                  setLogs([]);
-                }}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              >
-                {monthKeys.map((monthKey) => (
-                  <option key={monthKey} value={monthKey}>
-                    {getMonthLabel(monthKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <select
+                  value={String(selectedMonthParts.monthIndex)}
+                  onChange={(e) =>
+                    changeSelectedMonth(
+                      monthKeyFromParts(selectedMonthParts.year, Number(e.target.value)),
+                    )
+                  }
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  {MONTH_NAMES.map((monthName, index) => (
+                    <option key={monthName} value={index}>
+                      {monthName}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={String(selectedMonthParts.year)}
+                  onChange={(e) =>
+                    changeSelectedMonth(
+                      monthKeyFromParts(Number(e.target.value), selectedMonthParts.monthIndex),
+                    )
+                  }
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  {yearOptions.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 px-3"
+                  onClick={() => changeSelectedMonth(addMonthsToMonthKey(selectedMonth, 1))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
 
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase text-muted-foreground">
@@ -1291,7 +1454,7 @@ export default function AdvancedClassPortalPage() {
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               >
                 <option value="all">All Teachers</option>
-                {allTeachers.map((teacher, index) => (
+                {activeTeachers.map((teacher, index) => (
                   <option
                     key={`filter-${selectedUser}-${teacher.id}-${index}`}
                     value={teacher.id}
@@ -1461,7 +1624,7 @@ export default function AdvancedClassPortalPage() {
                   </DialogTitle>
                 </DialogHeader>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Add, edit, show, hide, and remove teachers for this user only. Every teacher shown here becomes a column in the Daily Update Table.
+                  Add a teacher from the selected month onward. Previous saved months stay unchanged, and future months will keep the teacher until you remove it from a selected month onward.
                 </p>
               </div>
 
@@ -1476,7 +1639,7 @@ export default function AdvancedClassPortalPage() {
                         {teacherForm.mode === "edit" ? "Update teacher" : "Create new teacher"}
                       </h3>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        The teacher will appear as a column in the daily table.
+                        This teacher will start from the currently selected month and continue into future months.
                       </p>
                     </div>
 
@@ -1548,7 +1711,7 @@ export default function AdvancedClassPortalPage() {
                     <div>
                       <h3 className="text-lg font-bold">Teacher CRUD Table</h3>
                       <p className="text-sm text-muted-foreground">
-                        Manage teacher names, visibility, and removal from this user's portal.
+                        Manage teacher names and timeline-based removal from this user's portal.
                       </p>
                     </div>
 
@@ -1628,8 +1791,14 @@ export default function AdvancedClassPortalPage() {
                                 </td>
 
                                 <td className="px-4 py-3">
-                                  <Badge variant={teacher.is_active ? "secondary" : "outline"}>
-                                    {teacher.is_active ? "Visible in table" : "Hidden"}
+                                  <Badge
+                                    variant={
+                                      isTeacherVisibleInMonth(teacher, selectedMonth)
+                                        ? "secondary"
+                                        : "outline"
+                                    }
+                                  >
+                                    {getTeacherTimelineStatus(teacher, selectedMonth)}
                                   </Badge>
                                 </td>
 
@@ -1644,24 +1813,6 @@ export default function AdvancedClassPortalPage() {
                                       Edit
                                     </Button>
 
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => {
-                                        const next = teachers.map((item) =>
-                                          item.id === teacher.id
-                                            ? {
-                                              ...item,
-                                              is_active: !item.is_active,
-                                            }
-                                            : item,
-                                        );
-
-                                        await saveTeachers(next);
-                                      }}
-                                    >
-                                      {teacher.is_active ? "Hide" : "Show"}
-                                    </Button>
 
                                     <Button
                                       variant="ghost"
@@ -1671,7 +1822,7 @@ export default function AdvancedClassPortalPage() {
                                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                     >
                                       <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                      {deletingTeacherId === teacher.id ? "Removing..." : "Remove"}
+                                      {deletingTeacherId === teacher.id ? "Removing..." : "Remove This Month Onward"}
                                     </Button>
                                   </div>
                                 </td>
@@ -1685,10 +1836,9 @@ export default function AdvancedClassPortalPage() {
 
                   <div className="mt-4 rounded-2xl border bg-muted/30 p-4 text-sm text-muted-foreground">
                     <p>
-                      <span className="font-semibold text-foreground">Add</span> creates a new teacher column.
-                      <span className="ml-1 font-semibold text-foreground">Edit</span> changes the teacher name.
-                      <span className="ml-1 font-semibold text-foreground">Hide</span> keeps the teacher saved but removes it from active use.
-                      <span className="ml-1 font-semibold text-foreground">Remove</span> deletes the teacher from this user's list and removes that teacher's saved values.
+                      <span className="font-semibold text-foreground">Add</span> starts the teacher from the currently selected month and all future months.
+                      <span className="ml-1 font-semibold text-foreground">Edit</span> changes the teacher name wherever that teacher is visible.
+                      <span className="ml-1 font-semibold text-foreground">Remove This Month Onward</span> removes the teacher only from the selected month and future months. Previous saved months remain safe.
                     </p>
                   </div>
                 </section>

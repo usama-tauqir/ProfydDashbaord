@@ -189,11 +189,11 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       href: '/dashboard/admin',
       icon: LayoutDashboard,
     },
-    {
-      title: 'Approvals',
-      href: '/dashboard/admin/approvals',
-      icon: CheckSquare,
-    },
+    // {
+    //   title: 'Approvals',
+    //   href: '/dashboard/admin/approvals',
+    //   icon: CheckSquare,
+    // },
 
     {
       title: 'Office Operations',
@@ -282,6 +282,13 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       href: '/dashboard/finance',
       icon: LayoutDashboard,
     },
+
+    {
+      title: 'Payments',
+      href: '/dashboard/finance/payments',
+      icon: DollarSign,
+    },
+
   ],
   hr: [
   {
@@ -363,11 +370,11 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       href: '/dashboard/recruitment',
       icon: LayoutDashboard,
     },
-    {
-      title: 'Positions',
-      href: '/dashboard/positions',
-      icon: UserPlus,
-    },
+    // {
+    //   title: 'Positions',
+    //   href: '/dashboard/positions',
+    //   icon: UserPlus,
+    // },
 
      {
       title: 'Hiring Demand',
@@ -394,12 +401,12 @@ export const DEPARTMENT_SIDEBAR_ITEMS = {
       href: '/dashboard/sales',
       icon: LayoutDashboard,
     },
-    {
-      title: 'Drop-off Reasons',
-      href: '/dashboard/sales/dropoffs',
+    // {
+    //   title: 'Drop-off Reasons',
+    //   href: '/dashboard/sales/dropoffs',
       
-      icon: AlertCircle,
-    },
+    //   icon: AlertCircle,
+    // },
 
     {
       title: 'Lead Funnel',
