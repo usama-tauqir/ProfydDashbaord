@@ -310,8 +310,8 @@ export default function TrainingDashboardPage() {
 
       {/* Quick Actions and Recent Activity */}
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Quick Actions */}
-        <Card className="md:col-span-1">
+        
+        {/* <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
@@ -347,9 +347,9 @@ export default function TrainingDashboardPage() {
               </Link>
             </Button>
           </CardContent>
-        </Card>
+        </Card> */}
 
-        {/* Recent Activity */}
+        
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>

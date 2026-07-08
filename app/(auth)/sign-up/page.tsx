@@ -34,6 +34,7 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { departments } from "@/lib/departments"
+import { companies } from "@/lib/companies"
 import { supabase } from "@/lib/supabase/client"
 
 type AllowedRole = "staff" | "manager" | "team_lead" | "teacher"
@@ -128,8 +129,28 @@ export default function SignUpPage() {
     return "bg-green-500"
   }
 
+  const getRequestStatus = (role: string): string => {
+    // CEO department accounts can only be activated manually via Supabase — no in-app approver
+    if (formData.department === "ceo") return "pending_manual"
+    if (isTeacherDepartment) return "pending_teacher_approval"
+    if (role === "staff") return "pending_teamlead"
+    if (role === "team_lead") return "pending_manager"
+    if (role === "manager") return "pending_ceo"
+    return "pending"
+  }
+
+  const getRequestNotes = (role: string): string => {
+    if (formData.department === "ceo") return "CEO department account submitted. Requires manual activation by the system administrator."
+    if (isTeacherDepartment) return "Teacher account submitted. Waiting for manager/admin approval."
+    if (role === "staff") return "Staff account submitted. Waiting for Team Lead approval."
+    if (role === "team_lead") return "Team Lead account submitted. Waiting for Manager approval."
+    if (role === "manager") return "Manager account submitted. Waiting for CEO approval."
+    return "Account submitted."
+  }
+
   const createSignupRequest = async (userId: string) => {
     const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim()
+    const role = formData.department === "teachers" ? "teacher" : formData.role
 
     const { error } = await supabase.from("signup_requests").insert({
       user_id: userId,
@@ -137,10 +158,10 @@ export default function SignUpPage() {
       full_name: fullName,
       first_name: formData.firstName.trim(),
       last_name: formData.lastName.trim(),
-      company_name: formData.companyName.trim() || null,
+      company_name: formData.companyName || null,
       department: formData.department,
-      requested_role: formData.department === "teachers" ? "teacher" : formData.role,
-      request_status: isTeacherDepartment ? "pending_teacher_approval" : "pending",
+      requested_role: role,
+      request_status: getRequestStatus(role),
       phone: formData.phone.trim() || null,
       qualification: isTeacherDepartment ? formData.qualification.trim() || null : null,
       experience_years: isTeacherDepartment && formData.experienceYears
@@ -149,9 +170,7 @@ export default function SignUpPage() {
       timezone: isTeacherDepartment ? formData.timezone : null,
       can_take_trials: isTeacherDepartment ? formData.canTakeTrials === "yes" : null,
       can_take_weekend_classes: isTeacherDepartment ? formData.canTakeWeekendClasses === "yes" : null,
-      notes: isTeacherDepartment
-        ? "Teacher account submitted. Waiting for manager/admin approval."
-        : "Account submitted."
+      notes: getRequestNotes(role),
     })
 
     if (error) {
@@ -190,6 +209,11 @@ export default function SignUpPage() {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
+      return
+    }
+
+    if (!formData.companyName) {
+      setError("Please select a company")
       return
     }
 
@@ -242,6 +266,20 @@ const newUserId = signUpResult.user?.id
 
 if (newUserId) {
   await createSignupRequest(newUserId)
+  // CEO dept has no in-app approver — skip email notification
+  // Notify approvers by email (fire-and-forget)
+  if (formData.department !== "ceo") fetch("/api/notify-approval", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: "new_request",
+      applicantName: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+      applicantEmail: formData.email.trim(),
+      department: formData.department,
+      role: formData.department === "teachers" ? "teacher" : formData.role,
+      companyName: formData.companyName,
+    }),
+  }).catch(() => {/* email errors are non-fatal */})
 }
 
       setSuccess(true)
@@ -382,20 +420,26 @@ if (newUserId) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="companyName">
-                    Company Name <span className="text-gray-400 text-sm">(Optional)</span>
-                  </Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      id="companyName"
-                      value={formData.companyName}
-                      onChange={(e) => handleChange("companyName", e.target.value)}
-                      className="pl-10 h-11 rounded-xl"
-                      placeholder="Your Company"
-                      disabled={loading || success}
-                    />
-                  </div>
+                  <Label htmlFor="companyName">Company</Label>
+                  <Select
+                    value={formData.companyName}
+                    onValueChange={(value) => handleChange("companyName", value)}
+                    disabled={loading || success}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-gray-400" />
+                        <SelectValue placeholder="Select your company" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

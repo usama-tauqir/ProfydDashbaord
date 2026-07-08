@@ -1,334 +1,203 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  CheckCircle,
-  XCircle,
-  RefreshCw,
-  Mail,
-  Phone,
-  AlertCircle,
-  Building2,
-  UserCheck,
-} from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
-import { useAuth } from "@/lib/auth-context";
-
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ModeToggle } from "@/components/mode-toggle";
+import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { CheckCircle, XCircle, RefreshCw, Mail, Phone, AlertCircle, Building2, UserCheck } from "lucide-react"
+import { supabase } from "@/lib/supabase/client"
+import { useAuth } from "@/lib/auth-context"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 type SignupRequest = {
-  id: string;
-  user_id: string;
-  email: string;
-  full_name: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  company_name: string | null;
-  department: string;
-  requested_role: string;
-  request_status: string;
-  phone: string | null;
-  notes: string | null;
-  created_at: string;
-};
-
-function getInitials(name?: string | null) {
-  if (!name) return "?";
-  const parts = name.trim().split(" ").filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+  id: string
+  user_id: string
+  email: string
+  full_name: string | null
+  first_name: string | null
+  last_name: string | null
+  company_name: string | null
+  department: string
+  requested_role: string
+  request_status: string
+  phone: string | null
+  notes: string | null
+  created_at: string
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString(undefined, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+function getInitials(name?: string | null) {
+  if (!name) return "?"
+  const parts = name.trim().split(" ").filter(Boolean)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase()
+}
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
 }
 
 export default function TeamLeadApprovalsPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [pendingRequests, setPendingRequests] = useState<SignupRequest[]>([]);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const [selectedRequest, setSelectedRequest] = useState<SignupRequest | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [actionType, setActionType] = useState<"approve" | "reject">("approve");
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const { user } = useAuth()
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [requests, setRequests] = useState<SignupRequest[]>([])
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<SignupRequest | null>(null)
+  const [rejectReason, setRejectReason] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [actionType, setActionType] = useState<"approve" | "reject">("approve")
+  const [authorized, setAuthorized] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      if (!user?.id) return;
-      const { data, error } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) console.error(error);
-      const role = data?.role || null;
-      setUserRole(role);
-      setIsAuthorized(role === "manager");
-    };
-    fetchUserRole();
-  }, [user?.id]);
+    if (!user) return
+    // Only managers can approve team lead requests
+    setAuthorized(user.role === "manager")
+  }, [user])
 
-  const fetchPendingRequests = async () => {
-    if (!user?.id || !isAuthorized) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
+  const fetchRequests = useCallback(async () => {
+    if (!user?.department) return
+    setLoading(true)
+    setError("")
     try {
       const { data, error } = await supabase
         .from("signup_requests")
         .select("*")
         .eq("requested_role", "team_lead")
-        .eq("request_status", "pending")
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      setPendingRequests(data || []);
+        .eq("request_status", "pending_manager")
+        .eq("department", user.department)   // same department only
+        .order("created_at", { ascending: true })
+      if (error) throw error
+      setRequests(data ?? [])
     } catch (err: any) {
-      console.error("Error fetching pending requests:", err);
-      setError(err.message || "Failed to load pending approvals.");
+      setError(err.message ?? "Failed to load requests.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [user?.department])
 
   useEffect(() => {
-    if (isAuthorized) {
-      fetchPendingRequests();
-    } else {
-      setLoading(false);
-    }
-  }, [isAuthorized]);
+    if (authorized) fetchRequests()
+    else if (authorized === false) setLoading(false)
+  }, [authorized, fetchRequests])
 
-  const handleApproval = async (request: SignupRequest, approve: boolean) => {
-    setProcessingId(request.id);
+  const sendEmail = async (type: "approved" | "rejected", req: SignupRequest, reason?: string) => {
+    await fetch("/api/notify-approval", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, applicantEmail: req.email, applicantName: req.full_name, reason }),
+    }).catch(() => {})
+  }
+
+  const handleAction = async (req: SignupRequest, approve: boolean) => {
+    setProcessingId(req.id)
     try {
       if (approve) {
-        const { data: existingUser, error: checkError } = await supabase
-          .from("users")
-          .select("id")
-          .eq("id", request.user_id)
-          .maybeSingle();
-
-        if (checkError) throw checkError;
-
-        if (!existingUser) {
-          const { error: insertError } = await supabase.from("users").insert({
-            id: request.user_id,
-            email: request.email,
-            full_name: request.full_name,
-            first_name: request.first_name,
-            last_name: request.last_name,
-            company_name: request.company_name,
-            department: request.department,
-            role: "team_lead",
-            phone: request.phone,
-            status: "active",
-            created_at: new Date().toISOString(),
-          });
-          if (insertError) throw insertError;
-        } else {
-          const { error: updateError } = await supabase
-            .from("users")
-            .update({ status: "active", role: "team_lead", department: request.department })
-            .eq("id", request.user_id);
-          if (updateError) throw updateError;
-        }
-
-        const { error: updateReqError } = await supabase
-          .from("signup_requests")
-          .update({ request_status: "approved" })
-          .eq("id", request.id);
-        if (updateReqError) throw updateReqError;
+        await supabase.from("users").upsert({
+          id: req.user_id, email: req.email, first_name: req.first_name,
+          last_name: req.last_name, company_name: req.company_name,
+          department: req.department, role: "team_lead", phone: req.phone, status: "active",
+        }, { onConflict: "id" })
+        await supabase.from("signup_requests").update({ request_status: "approved" }).eq("id", req.id)
+        await sendEmail("approved", req)
       } else {
-        const { error: updateError } = await supabase
-          .from("signup_requests")
-          .update({
-            request_status: "rejected",
-            notes: rejectReason || request.notes,
-          })
-          .eq("id", request.id);
-        if (updateError) throw updateError;
+        await supabase.from("users").update({ status: "rejected" }).eq("id", req.user_id)
+        await supabase.from("signup_requests").update({
+          request_status: "rejected",
+          notes: rejectReason || req.notes,
+        }).eq("id", req.id)
+        await sendEmail("rejected", req, rejectReason || undefined)
       }
-
-      setPendingRequests((prev) => prev.filter((r) => r.id !== request.id));
-      setDialogOpen(false);
-      setRejectReason("");
+      setRequests((prev) => prev.filter((r) => r.id !== req.id))
+      setDialogOpen(false)
+      setRejectReason("")
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     } finally {
-      setProcessingId(null);
+      setProcessingId(null)
     }
-  };
+  }
 
-  if (!isAuthorized && userRole !== null) {
+  if (authorized === false) {
     return (
-      <div className="container mx-auto flex min-h-[60vh] flex-col items-center justify-center px-4">
-        <AlertCircle className="mb-4 h-12 w-12 text-destructive" />
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive" />
         <h2 className="text-2xl font-bold">Access Denied</h2>
-        <p className="mt-2 text-muted-foreground">
-          Only Managers can approve team lead account requests.
-        </p>
-        <Button className="mt-6" onClick={() => router.push("/dashboard")}>
-          Go to Dashboard
-        </Button>
+        <p className="text-muted-foreground">Only Managers can approve Team Lead account requests.</p>
+        <Button onClick={() => router.push("/dashboard")}>Go to Dashboard</Button>
       </div>
-    );
+    )
   }
 
   if (loading) {
     return (
-      <div className="container mx-auto space-y-6 px-4 py-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-9 w-64" />
-          <ModeToggle />
-        </div>
-        <div className="space-y-4">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 w-full rounded-xl" />
-          ))}
-        </div>
+      <div className="space-y-4 p-6">
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-xl" />)}
       </div>
-    );
+    )
   }
 
   return (
-    <div className="container mx-auto space-y-8 px-4 py-6 md:px-6">
+    <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Team Lead Approvals</h1>
           <p className="text-muted-foreground mt-1">
-            Approve or reject pending team lead account requests. (Manager only)
+            Approve or reject pending Team Lead requests for your department ({user?.department}).
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchPendingRequests}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <ModeToggle />
-        </div>
+        <Button variant="outline" size="sm" onClick={fetchRequests}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+        </Button>
       </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
 
-      {pendingRequests.length === 0 ? (
+      {requests.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <UserCheck className="mx-auto h-12 w-12 text-green-500 mb-4" />
             <h3 className="text-lg font-medium">No pending approvals</h3>
-            <p className="text-sm text-muted-foreground">
-              All team lead signup requests have been reviewed.
-            </p>
+            <p className="text-sm text-muted-foreground">All Team Lead requests have been reviewed.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {pendingRequests.map((req) => (
+          {requests.map((req) => (
             <Card key={req.id} className="overflow-hidden">
               <CardContent className="p-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {getInitials(req.full_name)}
-                        </AvatarFallback>
+                        <AvatarFallback className="bg-primary/10 text-primary">{getInitials(req.full_name)}</AvatarFallback>
                       </Avatar>
                       <div>
                         <h3 className="text-lg font-semibold">{req.full_name || "Unnamed"}</h3>
                         <div className="flex flex-wrap gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            Applied: {formatDate(req.created_at)}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">Pending</Badge>
+                          <Badge variant="outline" className="text-xs">Applied: {formatDate(req.created_at)}</Badge>
+                          <Badge variant="secondary" className="text-xs">Team Lead · {req.department}</Badge>
                         </div>
                       </div>
                     </div>
-
                     <div className="grid gap-2 text-sm md:grid-cols-2">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{req.email}</span>
-                      </div>
-                      {req.phone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>{req.phone}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>Department: {req.department}</span>
-                      </div>
+                      <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-muted-foreground" /><span>{req.email}</span></div>
+                      {req.phone && <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-muted-foreground" /><span>{req.phone}</span></div>}
+                      <div className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-muted-foreground" /><span>Company: {req.company_name ?? "—"}</span></div>
                     </div>
-
-                    {req.notes && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{req.notes}</p>
-                    )}
                   </div>
-
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedRequest(req);
-                        setActionType("approve");
-                        setDialogOpen(true);
-                      }}
-                      disabled={processingId === req.id}
-                      className="gap-1"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      Approve
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => { setSelected(req); setActionType("approve"); setDialogOpen(true) }} disabled={processingId === req.id}>
+                      <CheckCircle className="mr-1 h-4 w-4" /> Approve
                     </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedRequest(req);
-                        setActionType("reject");
-                        setDialogOpen(true);
-                      }}
-                      disabled={processingId === req.id}
-                      className="gap-1"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Reject
+                    <Button size="sm" variant="destructive" onClick={() => { setSelected(req); setActionType("reject"); setDialogOpen(true) }} disabled={processingId === req.id}>
+                      <XCircle className="mr-1 h-4 w-4" /> Reject
                     </Button>
                   </div>
                 </div>
@@ -341,33 +210,25 @@ export default function TeamLeadApprovalsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {actionType === "approve" ? "Approve Team Lead Account" : "Reject Team Lead Account"}
-            </DialogTitle>
+            <DialogTitle>{actionType === "approve" ? "Approve Team Lead Account" : "Reject Team Lead Account"}</DialogTitle>
             <DialogDescription>
               {actionType === "approve"
-                ? "This will activate the team lead account. They will be able to log in."
-                : "This will reject the application. The user will not be able to access the platform."}
+                ? `This will activate ${selected?.full_name}'s account. They will receive an approval email.`
+                : `This will reject ${selected?.full_name}'s request. They will receive a rejection email with a signup link.`}
             </DialogDescription>
           </DialogHeader>
           {actionType === "reject" && (
             <div className="space-y-2">
-              <Label htmlFor="reason">Reason for rejection (optional)</Label>
-              <Textarea
-                id="reason"
-                placeholder="Enter reason for rejection..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={3}
-              />
+              <Label>Reason for rejection (optional)</Label>
+              <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} placeholder="Enter reason..." />
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button
               variant={actionType === "approve" ? "default" : "destructive"}
-              onClick={() => handleApproval(selectedRequest!, actionType === "approve")}
-              disabled={processingId === selectedRequest?.id}
+              onClick={() => handleAction(selected!, actionType === "approve")}
+              disabled={processingId === selected?.id}
             >
               {actionType === "approve" ? "Yes, Approve" : "Yes, Reject"}
             </Button>
@@ -375,5 +236,5 @@ export default function TeamLeadApprovalsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

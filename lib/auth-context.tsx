@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
-import type { User, Department, Role } from "./types"
+import type { User, Department, Role, AccountStatus } from "./types"
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js"
 
 interface AuthContextType {
@@ -56,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     department: authUser.user_metadata?.department || "support",
     role: authUser.user_metadata?.role || "staff",
     phone: authUser.user_metadata?.phone || null,
+    // status is intentionally excluded: DB default sets 'pending' for new rows,
+    // and existing approved users keep their current status on login.
   }, { onConflict: "id" })
 
       if (error) {
@@ -121,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastName: data.last_name,
         department: data.department as Department,
         role: data.role as Role,
+        status: (data.status as AccountStatus) ?? "active",
         createdAt: new Date(data.created_at)
       };
       

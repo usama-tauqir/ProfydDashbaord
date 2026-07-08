@@ -64,6 +64,13 @@ export default function DashboardLayout({
         return
       }
 
+      // Block users whose account is not yet approved.
+      // Only redirect if status is explicitly pending/rejected — never if column is missing (null/undefined).
+      if (user && (user.status === "pending" || user.status === "rejected")) {
+        router.replace("/pending-approval")
+        return
+      }
+
       if (!userDepartment || !isAllowedDepartment(userDepartment)) {
         router.replace("/sign-in")
         return
@@ -77,6 +84,10 @@ export default function DashboardLayout({
         router.replace(`/dashboard/${userDepartment}`)
         return
       }
+
+      // Shared paths (approvals, pending-approval) are accessible to all logged-in users
+      const SHARED_PATHS = ["approvals"]
+      if (SHARED_PATHS.includes(requestedDepartment)) return
 
       if (requestedDepartment && !isAllowedDepartment(requestedDepartment)) {
         router.replace(`/dashboard/${userDepartment}`)

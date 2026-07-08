@@ -11,7 +11,9 @@ export type Department =
   | "admin"
   | "teachers"
 
-export type Role = "staff" | "team_lead" | "teacher"
+export type Role = "staff" | "team_lead" | "manager" | "teacher"
+
+export type AccountStatus = "pending" | "active" | "rejected"
 
 // User type
 export interface User {
@@ -23,6 +25,7 @@ export interface User {
   lastName: string
   department: Department
   role: Role
+  status: AccountStatus
   createdAt: Date
 }
 

@@ -40,6 +40,7 @@ import {
   LogOut,
   MoreHorizontal,
   User,
+  UserCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { LucideIcon } from "lucide-react"
@@ -218,6 +219,65 @@ export function DepartmentSidebar({ departmentId }: DepartmentSidebarProps) {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {/* Role-based approval links — visible to approvers only */}
+            {user && (user.role === "team_lead" || user.role === "manager" || user.department === "ceo") && (
+              <SidebarGroup>
+                <div className="px-3 py-2 group-data-[collapsible=icon]:hidden">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Approvals
+                  </p>
+                </div>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {user.role === "team_lead" && (
+                      <SidebarMenuItem className="mb-1">
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive("/dashboard/approvals/staff")}
+                          tooltip="Staff Approvals"
+                        >
+                          <Link href="/dashboard/approvals/staff">
+                            <UserCheck className="h-4 w-4" />
+                            <span>Staff Approvals</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+
+                    {user.role === "manager" && (
+                      <SidebarMenuItem className="mb-1">
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive("/dashboard/approvals/team-lead")}
+                          tooltip="Team Lead Approvals"
+                        >
+                          <Link href="/dashboard/approvals/team-lead">
+                            <UserCheck className="h-4 w-4" />
+                            <span>Team Lead Approvals</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+
+                    {user.department === "ceo" && (
+                      <SidebarMenuItem className="mb-1">
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive("/dashboard/approvals") && !isActive("/dashboard/approvals/staff") && !isActive("/dashboard/approvals/team-lead")}
+                          tooltip="Manager Approvals"
+                        >
+                          <Link href="/dashboard/approvals">
+                            <UserCheck className="h-4 w-4" />
+                            <span>Manager Approvals</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
           </SidebarContent>
         </ScrollArea>
       </div>
