@@ -1,11 +1,11 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  },
-}
+const isGitHubPages = process.env.DEPLOY_TARGET === "github-pages";
 
-export default nextConfig
+const nextConfig = {
+  output: isGitHubPages ? "export" : "standalone",
+  trailingSlash: isGitHubPages,
+  images: {
+    unoptimized: isGitHubPages,
+  },
+};
+
+export default nextConfig;
