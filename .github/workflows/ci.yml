@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   workflow_dispatch:
 
 permissions:
@@ -20,9 +21,6 @@ jobs:
     name: Build GitHub Pages
     runs-on: ubuntu-latest
 
-    env:
-      DEPLOY_TARGET: github-pages
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -38,9 +36,21 @@ jobs:
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          static_site_generator: next
+          enablement: true
+          token: ${{ secrets.PAGES_PAT }}
 
       - name: Build Next.js application
         run: npm run build
+
+      - name: Verify static export
+        run: |
+          if [ ! -d "./out" ]; then
+            echo "Error: ./out directory was not created."
+            echo "Make sure Next.js static export is enabled."
+            exit 1
+          fi
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
