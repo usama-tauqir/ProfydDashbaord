@@ -4,19 +4,24 @@ const isGitHubPages =
 const repositoryName =
   process.env.GITHUB_REPOSITORY?.split("/")[1] ?? "";
 
-const isUserSite =
+const isUserOrOrganizationSite =
   repositoryName.endsWith(".github.io");
 
 const basePath =
-  isGitHubPages && repositoryName && !isUserSite
+  isGitHubPages &&
+  repositoryName &&
+  !isUserOrOrganizationSite
     ? `/${repositoryName}`
     : "";
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   output: isGitHubPages ? "export" : "standalone",
+
   basePath,
+
   trailingSlash: isGitHubPages,
+
   images: {
     unoptimized: isGitHubPages,
   },
